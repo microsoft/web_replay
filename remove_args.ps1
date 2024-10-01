@@ -24,6 +24,12 @@ $WshShell = New-Object -ComObject ("WScript.Shell")
 
 $ShortcutPath = "$($env:APPDATA)\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\$browser.lnk"
 
+if (-not (Test-Path $ShortcutPath)) {
+    exit 1
+}
+
 $Shortcut = $WshShell.CreateShortcut($ShortcutPath)
 $Shortcut.Arguments = ""
 $Shortcut.Save()
+
+exit
