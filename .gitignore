@@ -24,3 +24,4 @@ go.work.sum
 recordings/*
 extra_urls/*
 bin/*
+web_replay*
