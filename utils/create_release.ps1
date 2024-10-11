@@ -6,6 +6,8 @@ $RELEASE_DIR = "web_replay"
 New-Item -ItemType Directory -Path $RELEASE_DIR
 
 Copy-Item -Path "bin" -Destination $RELEASE_DIR -Recurse
+Copy-Item -Path "certs" -Destination $RELEASE_DIR -Recurse
+Copy-Item -Path "deterministic" -Destination $RELEASE_DIR -Recurse
 Copy-Item -Path "utils\set_args.ps1" -Destination $RELEASE_DIR
 Copy-Item -Path "utils\remove_args.ps1" -Destination $RELEASE_DIR
 Copy-Item -Path "utils\install_certs.ps1" -Destination $RELEASE_DIR
