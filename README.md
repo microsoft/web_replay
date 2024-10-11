@@ -11,8 +11,8 @@ and used by web_replay must be trusted. Multiple options are possible to support
 
 Specify public key hashes for the browser to ignore using `--ignore-certificate-errors-spki-list`.
 
-Install the certificate chain on a test machine using `install_certs.ps1`. *Use this with care
-as installing a root CA compromises your machine*.
+Install the certificate chain on a test machine using `install_certs.ps1`. **Use this with care
+as installing a root CA compromises your machine**.
 
 The certificates listed in `.\certs` are used by default. These can be modified by replacing the
 chain with a different one.
@@ -36,7 +36,7 @@ for the specified browser located on the taskbar. Use in the following way:
 .\remove_args.ps1 <browser>
 ```
 
-<browser> is optional and is one of (default is `edge`):
+`<browser>` is optional and is one of (default is `edge`):
 
 ```
 edge
