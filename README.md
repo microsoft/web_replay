@@ -1,6 +1,6 @@
 # Web Replay
 Web Replay is a performance testing tool written in Golang for
-recording and replaying web pages.
+recording and replaying web pages. Originally based on [Catapult > Web Page Replay](https://chromium.googlesource.com/catapult).
 
 ## Sample Usage
 
