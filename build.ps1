@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the BSD-3-Clause license.
+
 param(
     [Parameter(Mandatory=$true)]
     [string]$exe
