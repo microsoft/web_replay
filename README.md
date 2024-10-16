@@ -10,6 +10,12 @@ In order for the web_replay server to be trusted by the browser, certificates mi
 and used by web_replay must be trusted. Multiple options are possible to support this:
 
 Specify public key hashes for the browser to ignore using `--ignore-certificate-errors-spki-list`.
+Run `utils\create_pk_hash.sh <cert>` to output the hash to include. The following ignores the included
+two leaf certificates:
+
+```
+--ignore-certificate-errors-spki-list=2FBkVuYq8NvFRbHkFRFnXLd/FJK5tu7m/b+V7s/TUL4=,P0/jlVD2vgAtt9UmEeZf7IrHAva3Fs8N+4V9glmvwkc=
+```
 
 Install the certificate chain on a test machine using `install_certs.ps1`. **Use this with care
 as installing a root CA compromises your machine**.
