@@ -38,6 +38,7 @@ var websiteHostMap = map[string]string{
 	"bing":      "bing.com",
 	"bbc":       "bbc.com",
 	"edge":      "edge.microsoft.com",
+	"ntp":       "ntp.msn.com",
 }
 
 func createRe(reList []string) string {
