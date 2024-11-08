@@ -344,6 +344,24 @@ func addAll(cfg *Config, archive *webreplay.Archive, outfile string, inputFilePa
 	return writeArchive(archive, outfile)
 }
 
+func cookiesRemove(cfg *Config, archive *webreplay.Archive, outfile string) error {
+	newA, err := archive.Edit(func(req *http.Request, resp *http.Response) (*http.Request, *http.Response, error) {
+		req.Header.Del("Cookie")
+		req.Header.Del("Set-Cookie")
+
+		resp.Header.Del("Cookie")
+		resp.Header.Del("Set-Cookie")
+
+		return req, resp, nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("error editing archive:\n%v", err)
+	}
+
+	return writeArchive(newA, outfile)
+}
+
 // compressResponse compresses resp.Body in place according to resp's Content-Encoding header.
 func compressResponse(resp *http.Response) error {
 	ce := strings.ToLower(resp.Header.Get("Content-Encoding"))
@@ -479,6 +497,16 @@ func main() {
 			Before:    checkArgs("trim", 2),
 			Action: func(c *cli.Context) error {
 				return trim(cfg, loadArchiveOrDie(c, 0), c.Args().Get(1))
+			},
+		},
+		&cli.Command{
+			Name:      "cookiesRemove",
+			Usage:     "Remove cookie headers from requests/responses in an archive",
+			ArgsUsage: "input_archive output_archive",
+			Flags:     cfg.DefaultFlags(),
+			Before:    checkArgs("cookiesRemove", 2),
+			Action: func(c *cli.Context) error {
+				return cookiesRemove(cfg, loadArchiveOrDie(c, 0), c.Args().Get(1))
 			},
 		},
 	}
