@@ -119,23 +119,39 @@ func (cfg *Config) requestEnabled(req *http.Request, resp *http.Response) bool {
 	return true
 }
 
-func list(cfg *Config, a *webreplay.Archive, printFull bool) error {
+type ListOption int
+
+const (
+	LIST_REQ ListOption = iota
+	LIST_HEADER
+	LIST_HEADER_BODY
+)
+
+func list(cfg *Config, a *webreplay.Archive, option ListOption) error {
 	return a.ForEach(func(req *http.Request, resp *http.Response, dur time.Duration) error {
 		if !cfg.requestEnabled(req, resp) {
 			return nil
 		}
-		if printFull {
+		if option == LIST_REQ {
+			fmt.Fprintf(os.Stdout, "%s %s %s %s\n", req.Method, req.Host, req.URL, resp.Status)
+		} else {
 			fmt.Fprint(os.Stdout, "----------------------------------------\n")
-			req.Write(os.Stdout)
+			if option == LIST_HEADER {
+				req.Header.Write(os.Stdout)
+			} else {
+				req.Write(os.Stdout)
+			}
 			fmt.Fprint(os.Stdout, "\n")
 			err := webreplay.DecompressResponse(resp)
 			if err != nil {
 				return fmt.Errorf("Unable to decompress body:\n%v", err)
 			}
-			resp.Write(os.Stdout)
+			if option == LIST_HEADER {
+				resp.Header.Write(os.Stdout)
+			} else {
+				resp.Write(os.Stdout)
+			}
 			fmt.Fprint(os.Stdout, "\n")
-		} else {
-			fmt.Fprintf(os.Stdout, "%s %s %s %s\n", req.Method, req.Host, req.URL, resp.Status)
 		}
 		return nil
 	})
@@ -387,7 +403,17 @@ func main() {
 			Flags:     cfg.DefaultFlags(),
 			Before:    checkArgs("ls", 1),
 			Action: func(c *cli.Context) error {
-				return list(cfg, loadArchiveOrDie(c, 0), false)
+				return list(cfg, loadArchiveOrDie(c, 0), LIST_REQ)
+			},
+		},
+		&cli.Command{
+			Name:      "header",
+			Usage:     "Dump the request/response headers in an archive",
+			ArgsUsage: "archive",
+			Flags:     cfg.DefaultFlags(),
+			Before:    checkArgs("header", 1),
+			Action: func(c *cli.Context) error {
+				return list(cfg, loadArchiveOrDie(c, 0), LIST_HEADER)
 			},
 		},
 		&cli.Command{
@@ -397,7 +423,7 @@ func main() {
 			Flags:     cfg.DefaultFlags(),
 			Before:    checkArgs("cat", 1),
 			Action: func(c *cli.Context) error {
-				return list(cfg, loadArchiveOrDie(c, 0), true)
+				return list(cfg, loadArchiveOrDie(c, 0), LIST_HEADER_BODY)
 			},
 		},
 		&cli.Command{
