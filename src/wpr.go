@@ -682,8 +682,10 @@ func (r *RecordCommand) Run(c *cli.Context) error {
 	mwa.Transformers = transformers
 	mwa.Names = append(mwa.Names, "default")
 
-	httpHandler := webreplay.NewRecordingProxy(mwa, "http")
-	httpsHandler := webreplay.NewRecordingProxy(mwa, "https")
+	siteLog := webreplay.CreateSiteLog(r.common.outDir)
+
+	httpHandler := webreplay.NewRecordingProxy(mwa, "http", siteLog)
+	httpsHandler := webreplay.NewRecordingProxy(mwa, "https", siteLog)
 	tlsconfig, err := webreplay.RecordTLSConfig(r.common.leaf_certs, r.common.int_cert, mwa)
 
 	if err != nil {
@@ -820,12 +822,14 @@ func (r *ReplayCommand) Run(c *cli.Context) error {
 		log.Printf("Disabling request roundtrip delays")
 	}
 
+	siteLog := webreplay.CreateSiteLog(r.common.outDir)
+
 	httpHandler := webreplay.NewReplayingProxy(
-		ma, "http", r.quietMode, r.excludesList, r.disableReqDelay,
+		ma, "http", r.quietMode, r.excludesList, r.disableReqDelay, siteLog,
 	)
 
 	httpsHandler := webreplay.NewReplayingProxy(
-		ma, "https", r.quietMode, r.excludesList, r.disableReqDelay,
+		ma, "https", r.quietMode, r.excludesList, r.disableReqDelay, siteLog,
 	)
 
 	tlsconfig, err := webreplay.ReplayTLSConfig(r.common.leaf_certs, r.common.int_cert, ma)

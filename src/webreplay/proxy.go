@@ -73,15 +73,17 @@ func updateDates(h http.Header, now time.Time) {
 // NewReplayingProxy constructs an HTTP proxy that replays responses from an archive.
 // The proxy is listening for requests on a port that uses the given scheme (e.g., http, https).
 func NewReplayingProxy(ma *MultipleArchive, scheme string, quietMode bool,
-	excludesList string, disableReqDelay bool) http.Handler {
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	excludesList string, disableReqDelay bool, siteLog *SiteLog) http.Handler {
+	transport := http.DefaultTransport.(*http.Transport)
+	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	return &replayingProxy{
-		http.DefaultTransport.(*http.Transport),
+		transport,
 		ma,
 		scheme,
 		quietMode,
 		strings.Split(excludesList, " "),
 		disableReqDelay,
+		siteLog,
 	}
 }
 
@@ -92,11 +94,24 @@ type replayingProxy struct {
 	quietMode       bool
 	excludesList    []string
 	disableReqDelay bool
+	siteLog         *SiteLog
 }
 
 func (proxy *replayingProxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if req.URL.Path == "/web-page-replay-generate-200" {
 		w.WriteHeader(200)
+		return
+	}
+
+	if req.URL.Path == "/web-page-replay-record-log" {
+		log.Printf("Received /web-page-replay-record-log")
+		proxy.siteLog.recordLog(req)
+		return
+	}
+
+	if req.URL.Path == "/web-page-replay-save-log" {
+		log.Printf("Saving site log")
+		proxy.siteLog.saveLog()
 		return
 	}
 
@@ -262,25 +277,40 @@ func (proxy *replayingProxy) ServeHTTP(w http.ResponseWriter, req *http.Request)
 
 // NewRecordingProxy constructs an HTTP proxy that records responses into an archive.
 // The proxy is listening for requests on a port that uses the given scheme (e.g., http, https).
-func NewRecordingProxy(mwa *MultipleWritableArchive, scheme string) http.Handler {
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+func NewRecordingProxy(mwa *MultipleWritableArchive, scheme string, siteLog *SiteLog) http.Handler {
+	transport := http.DefaultTransport.(*http.Transport)
+	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
 	return &recordingProxy{
-		http.DefaultTransport.(*http.Transport),
+		transport,
 		mwa,
 		scheme,
+		siteLog,
 	}
 }
 
 type recordingProxy struct {
-	tr     *http.Transport
-	mwa    *MultipleWritableArchive
-	scheme string
+	tr      *http.Transport
+	mwa     *MultipleWritableArchive
+	scheme  string
+	siteLog *SiteLog
 }
 
 func (proxy *recordingProxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if req.URL.Path == "/web-page-replay-generate-200" {
 		w.WriteHeader(200)
+		return
+	}
+
+	if req.URL.Path == "/web-page-replay-record-log" {
+		log.Printf("Received /web-page-replay-record-log")
+		proxy.siteLog.recordLog(req)
+		return
+	}
+
+	if req.URL.Path == "/web-page-replay-save-log" {
+		log.Printf("Saving site log")
+		proxy.siteLog.saveLog()
 		return
 	}
 
