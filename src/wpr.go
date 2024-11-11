@@ -72,6 +72,8 @@ type CommonConfig struct {
 	// Computed state.
 	leaf_certs []tls.Certificate
 	int_cert   tls.Certificate
+
+	outDir string
 }
 
 type RecordCommand struct {
@@ -169,10 +171,37 @@ func (common *CommonConfig) Flags() []cli.Flag {
 				"CAUTION: Without deterministic.js, many pages will not replay.",
 			Destination: &common.injectScriptsDir,
 		},
+		&cli.StringFlag{
+			Name:        "out_dir",
+			Usage:       "Output directory where log and miscellaneous files are stored",
+			Destination: &common.outDir,
+		},
 	)
 }
 
 func (common *CommonConfig) CheckArgs(c *cli.Context) error {
+	if common.outDir != "" {
+		if err := os.MkdirAll(common.outDir, os.ModePerm); err != nil {
+			log.Println(err)
+			os.Exit(1)
+		}
+
+		file, err := os.Create(filepath.Join(common.outDir, "out.log"))
+
+		if err != nil {
+			log.Println(err)
+			os.Exit(1)
+		}
+
+		os.Stdout = file
+		os.Stderr = file
+
+		c.App.Writer = file
+		c.App.ErrWriter = file
+
+		log.SetOutput(file)
+	}
+
 	if c.Args().Len() > 1 {
 		return errors.New("too many args")
 	}
@@ -869,6 +898,5 @@ func main() {
 	app.UsageText = fmt.Sprintf(longUsage, progName, progName)
 	app.HideVersion = true
 	app.Version = ""
-	app.Writer = os.Stderr
 	app.RunAndExitOnError()
 }
