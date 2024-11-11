@@ -139,8 +139,8 @@ func decompressBody(ce string, compressed []byte) ([]byte, error) {
 		}
 	case "deflate":
 		r = flate.NewReader(bytes.NewReader(compressed))
-	// case "br":
-	// 	r = cbrotli.NewReader(bytes.NewReader(compressed))
+	case "br":
+		r = cbrotli.NewReader(bytes.NewReader(compressed))
 	case "zstd":
 		var err error
 		var d *zstd.Decoder
