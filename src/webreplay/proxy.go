@@ -17,6 +17,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -277,9 +278,13 @@ func (proxy *replayingProxy) ServeHTTP(w http.ResponseWriter, req *http.Request)
 
 // NewRecordingProxy constructs an HTTP proxy that records responses into an archive.
 // The proxy is listening for requests on a port that uses the given scheme (e.g., http, https).
-func NewRecordingProxy(mwa *MultipleWritableArchive, scheme string, siteLog *SiteLog) http.Handler {
+func NewRecordingProxy(mwa *MultipleWritableArchive, scheme string, siteLog *SiteLog, proxyServerURL *url.URL) http.Handler {
 	transport := http.DefaultTransport.(*http.Transport)
 	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+
+	if proxyServerURL != nil {
+		transport.Proxy = http.ProxyURL(proxyServerURL)
+	}
 
 	return &recordingProxy{
 		transport,

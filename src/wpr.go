@@ -16,6 +16,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -79,6 +80,9 @@ type CommonConfig struct {
 type RecordCommand struct {
 	common CommonConfig
 	cmd    cli.Command
+
+	// Custom flags for record.
+	proxyServer string
 }
 
 type ReplayCommand struct {
@@ -292,7 +296,13 @@ func processInjectedScripts(injectScriptsDir string, timeSeedMs int64) ([]webrep
 }
 
 func (r *RecordCommand) Flags() []cli.Flag {
-	return r.common.Flags()
+	return append(r.common.Flags(),
+		&cli.StringFlag{
+			Name:        "proxy_server_url",
+			Value:       "",
+			Usage:       "Proxy server to use when recording requests",
+			Destination: &r.proxyServer,
+		})
 }
 
 func (r *ReplayCommand) Flags() []cli.Flag {
@@ -684,8 +694,18 @@ func (r *RecordCommand) Run(c *cli.Context) error {
 
 	siteLog := webreplay.CreateSiteLog(r.common.outDir)
 
-	httpHandler := webreplay.NewRecordingProxy(mwa, "http", siteLog)
-	httpsHandler := webreplay.NewRecordingProxy(mwa, "https", siteLog)
+	var proxyServerURL *url.URL
+	if r.proxyServer != "" {
+		proxyServerURL, err = url.Parse(r.proxyServer)
+
+		if err != nil {
+			log.Println("error parsing proxy URL:", err)
+			os.Exit(1)
+		}
+	}
+
+	httpHandler := webreplay.NewRecordingProxy(mwa, "http", siteLog, proxyServerURL)
+	httpsHandler := webreplay.NewRecordingProxy(mwa, "https", siteLog, proxyServerURL)
 	tlsconfig, err := webreplay.RecordTLSConfig(r.common.leaf_certs, r.common.int_cert, mwa)
 
 	if err != nil {
