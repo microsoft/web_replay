@@ -43,6 +43,8 @@
 
     var numClicked = 0;
     var totalClicks = 3;
+    var videoStartTime = 0;
+    var title = "TOS";
 
     function clickEventListener() {
       numClicked++;
@@ -55,11 +57,11 @@
         video.removeEventListener("play", playEventListener);
         document.removeEventListener("click", clickEventListener);
 
-        var videoStartTime = 0;
         var urlParams = new URLSearchParams(window.location.search);
 
         if (urlParams.get("v") === "yfj8zYFU-Tc") {
           videoStartTime = 30;
+          title = "NASA";
         }
 
         video.currentTime = videoStartTime;
@@ -70,6 +72,27 @@
         }, 2000);
       }
     }
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key !== "k") {
+        return;
+      }
+
+      var body = JSON.stringify({
+        from: "youtube",
+        content: {
+          url: window.location.href,
+          title,
+          start: videoStartTime,
+          end: video.currentTime
+        }
+      });
+
+      fetch(`${window.location.origin}/web-page-replay-record-log`, {
+        method: "POST",
+        body
+      });
+    });
 
     document.addEventListener("click", clickEventListener);
   }, { once: true });
