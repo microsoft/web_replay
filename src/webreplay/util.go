@@ -78,10 +78,16 @@ func IsSubdomain(root string, sub string) bool {
 
 func ExcludeRequest(req *http.Request, websites []string) bool {
 	for _, website := range websites {
-		domain, ok := websiteHostMap[strings.ToLower(website)]
+		domain := website
 
-		if !ok {
-			continue
+		if !strings.Contains(website, ".") {
+			var ok bool
+
+			domain, ok = websiteHostMap[strings.ToLower(website)]
+
+			if !ok {
+				continue
+			}
 		}
 
 		pattern := domainToRegexp(domain)
