@@ -281,6 +281,7 @@ func (proxy *replayingProxy) ServeHTTP(w http.ResponseWriter, req *http.Request)
 func NewRecordingProxy(mwa *MultipleWritableArchive, scheme string, siteLog *SiteLog, proxyServerURL *url.URL) http.Handler {
 	transport := http.DefaultTransport.(*http.Transport)
 	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	transport.Proxy = nil
 
 	if proxyServerURL != nil {
 		transport.Proxy = http.ProxyURL(proxyServerURL)
@@ -336,6 +337,17 @@ func (proxy *recordingProxy) ServeHTTP(w http.ResponseWriter, req *http.Request)
 
 		w.Write([]byte("done"))
 		proxy.mwa.ChangeArchive(n)
+
+		if proxy.tr.Proxy != nil {
+			// Change proxy archive as well
+			req.Host = "0.0.0.0"
+			fixupRequestURL(req, proxy.scheme)
+			_, err := proxy.tr.RoundTrip(req)
+
+			if err != nil {
+				log.Printf("Change proxy archive RoundTrip failed: %v", err)
+			}
+		}
 
 		return
 	}

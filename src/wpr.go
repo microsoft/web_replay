@@ -702,6 +702,8 @@ func (r *RecordCommand) Run(c *cli.Context) error {
 			log.Println("error parsing proxy URL:", err)
 			os.Exit(1)
 		}
+
+		log.Printf("Using proxy server %v", proxyServerURL)
 	}
 
 	httpHandler := webreplay.NewRecordingProxy(mwa, "http", siteLog, proxyServerURL)
