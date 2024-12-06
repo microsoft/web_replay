@@ -116,6 +116,8 @@ type Archive struct {
 	Requests map[string]map[string][]*ArchivedRequest
 	// Maps host string to DER encoded certs.
 	Certs map[string][]byte
+	// Map host string to server timeout duration
+	IdleTimeouts map[string]time.Duration
 	// Maps host string to the negotiated protocol. eg. "http/1.1" or "h2"
 	// If absent, will default to "http/1.1".
 	NegotiatedProtocol map[string]string
@@ -214,6 +216,28 @@ func (ma *MultipleArchive) FindHostTlsConfig(host string) ([]byte, string, error
 	return derBytes, negotiatedProtocol, err
 }
 
+func (ma *MultipleArchive) FindIdleTimeout(serverName string) (time.Duration, error) {
+	idleTimeout, err := ma.CurrentArchive().FindIdleTimeout(serverName)
+
+	if err != nil {
+		currentIndex := atomic.LoadUint32(&ma.CurrentIndex)
+
+		for i, archive := range ma.Archives {
+			if uint32(i) == currentIndex {
+				continue
+			}
+
+			idleTimeout, err = archive.FindIdleTimeout(serverName)
+
+			if err == nil {
+				break
+			}
+		}
+	}
+
+	return idleTimeout, err
+}
+
 func newArchive() Archive {
 	return Archive{Requests: make(map[string]map[string][]*ArchivedRequest)}
 }
@@ -270,6 +294,14 @@ func (a *Archive) ForEach(f func(req *http.Request, resp *http.Response, dur tim
 		}
 	}
 	return nil
+}
+
+func (a *Archive) FindIdleTimeout(serverName string) (time.Duration, error) {
+	if idleTimeout, ok := a.IdleTimeouts[serverName]; ok {
+		return idleTimeout, nil
+	}
+
+	return 0, ErrNotFound
 }
 
 // Returns the der encoded cert and negotiated protocol.

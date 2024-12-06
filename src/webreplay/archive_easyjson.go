@@ -120,6 +120,22 @@ func easyjsonF9fe5e58DecodeGithubComMicrosoftWebReplaySrcWebreplay(in *jlexer.Le
 				}
 				in.Delim('}')
 			}
+		case "IdleTimeouts":
+			if in.IsNull() {
+				in.Skip()
+			} else {
+				in.Delim('{')
+				out.IdleTimeouts = make(map[string]time.Duration)
+				for !in.IsDelim('}') {
+					key := string(in.String())
+					in.WantColon()
+					var v6 time.Duration
+					v6 = time.Duration(in.Int64())
+					(out.IdleTimeouts)[key] = v6
+					in.WantComma()
+				}
+				in.Delim('}')
+			}
 		case "NegotiatedProtocol":
 			if in.IsNull() {
 				in.Skip()
@@ -129,9 +145,9 @@ func easyjsonF9fe5e58DecodeGithubComMicrosoftWebReplaySrcWebreplay(in *jlexer.Le
 				for !in.IsDelim('}') {
 					key := string(in.String())
 					in.WantColon()
-					var v6 string
-					v6 = string(in.String())
-					(out.NegotiatedProtocol)[key] = v6
+					var v7 string
+					v7 = string(in.String())
+					(out.NegotiatedProtocol)[key] = v7
 					in.WantComma()
 				}
 				in.Delim('}')
@@ -165,40 +181,40 @@ func easyjsonF9fe5e58EncodeGithubComMicrosoftWebReplaySrcWebreplay(out *jwriter.
 			out.RawString(`null`)
 		} else {
 			out.RawByte('{')
-			v7First := true
-			for v7Name, v7Value := range in.Requests {
-				if v7First {
-					v7First = false
+			v8First := true
+			for v8Name, v8Value := range in.Requests {
+				if v8First {
+					v8First = false
 				} else {
 					out.RawByte(',')
 				}
-				out.String(string(v7Name))
+				out.String(string(v8Name))
 				out.RawByte(':')
-				if v7Value == nil && (out.Flags&jwriter.NilMapAsEmpty) == 0 {
+				if v8Value == nil && (out.Flags&jwriter.NilMapAsEmpty) == 0 {
 					out.RawString(`null`)
 				} else {
 					out.RawByte('{')
-					v8First := true
-					for v8Name, v8Value := range v7Value {
-						if v8First {
-							v8First = false
+					v9First := true
+					for v9Name, v9Value := range v8Value {
+						if v9First {
+							v9First = false
 						} else {
 							out.RawByte(',')
 						}
-						out.String(string(v8Name))
+						out.String(string(v9Name))
 						out.RawByte(':')
-						if v8Value == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
+						if v9Value == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
 							out.RawString("null")
 						} else {
 							out.RawByte('[')
-							for v9, v10 := range v8Value {
-								if v9 > 0 {
+							for v10, v11 := range v9Value {
+								if v10 > 0 {
 									out.RawByte(',')
 								}
-								if v10 == nil {
+								if v11 == nil {
 									out.RawString("null")
 								} else {
-									easyjsonF9fe5e58EncodeGithubComMicrosoftWebReplaySrcWebreplay1(out, *v10)
+									easyjsonF9fe5e58EncodeGithubComMicrosoftWebReplaySrcWebreplay1(out, *v11)
 								}
 							}
 							out.RawByte(']')
@@ -217,16 +233,37 @@ func easyjsonF9fe5e58EncodeGithubComMicrosoftWebReplaySrcWebreplay(out *jwriter.
 			out.RawString(`null`)
 		} else {
 			out.RawByte('{')
-			v11First := true
-			for v11Name, v11Value := range in.Certs {
-				if v11First {
-					v11First = false
+			v12First := true
+			for v12Name, v12Value := range in.Certs {
+				if v12First {
+					v12First = false
 				} else {
 					out.RawByte(',')
 				}
-				out.String(string(v11Name))
+				out.String(string(v12Name))
 				out.RawByte(':')
-				out.Base64Bytes(v11Value)
+				out.Base64Bytes(v12Value)
+			}
+			out.RawByte('}')
+		}
+	}
+	{
+		const prefix string = ",\"IdleTimeouts\":"
+		out.RawString(prefix)
+		if in.IdleTimeouts == nil && (out.Flags&jwriter.NilMapAsEmpty) == 0 {
+			out.RawString(`null`)
+		} else {
+			out.RawByte('{')
+			v15First := true
+			for v15Name, v15Value := range in.IdleTimeouts {
+				if v15First {
+					v15First = false
+				} else {
+					out.RawByte(',')
+				}
+				out.String(string(v15Name))
+				out.RawByte(':')
+				out.Int64(int64(v15Value))
 			}
 			out.RawByte('}')
 		}
@@ -238,16 +275,16 @@ func easyjsonF9fe5e58EncodeGithubComMicrosoftWebReplaySrcWebreplay(out *jwriter.
 			out.RawString(`null`)
 		} else {
 			out.RawByte('{')
-			v14First := true
-			for v14Name, v14Value := range in.NegotiatedProtocol {
-				if v14First {
-					v14First = false
+			v16First := true
+			for v16Name, v16Value := range in.NegotiatedProtocol {
+				if v16First {
+					v16First = false
 				} else {
 					out.RawByte(',')
 				}
-				out.String(string(v14Name))
+				out.String(string(v16Name))
 				out.RawByte(':')
-				out.String(string(v14Value))
+				out.String(string(v16Value))
 			}
 			out.RawByte('}')
 		}

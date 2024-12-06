@@ -378,32 +378,8 @@ func (r *RootCACommand) Flags() []cli.Flag {
 		})
 }
 
-func getListener(host string, port int) (net.Listener, error) {
-	addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%v:%d", host, port))
-	if err != nil {
-		return nil, err
-	}
-	return net.ListenTCP("tcp", addr)
-}
-
-// Copied from https://golang.org/src/net/http/server.go.
-// This is to make dead TCP connections to eventually go away.
-type tcpKeepAliveListener struct {
-	*net.TCPListener
-}
-
-func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
-	tc, err := ln.AcceptTCP()
-	if err != nil {
-		return
-	}
-	tc.SetKeepAlive(true)
-	tc.SetKeepAlivePeriod(3 * time.Minute)
-	return tc, nil
-}
-
 func startServers(startTime time.Time, tlsconfig *tls.Config,
-	httpHandler, httpsHandler http.Handler, common *CommonConfig) {
+	httpHandler, httpsHandler http.Handler, common *CommonConfig, ma *webreplay.MultipleArchive) {
 	type Server struct {
 		Scheme string
 		Host   string
@@ -453,6 +429,7 @@ func startServers(startTime time.Time, tlsconfig *tls.Config,
 					Addr:      fmt.Sprintf("%v:%v", host, common.httpsPort),
 					Handler:   httpsHandler,
 					TLSConfig: tlsconfig,
+					ConnState: webreplay.ConnStateHook,
 				},
 			})
 		}
@@ -480,7 +457,7 @@ func startServers(startTime time.Time, tlsconfig *tls.Config,
 
 			switch s.Scheme {
 			case "http":
-				ln, err = getListener(s.Host, s.Port)
+				ln, err = webreplay.GetTCPKeepAliveListener(s.Host, s.Port, ma)
 
 				if err != nil {
 					break
@@ -490,9 +467,9 @@ func startServers(startTime time.Time, tlsconfig *tls.Config,
 
 				logServeStarted(s.Scheme, ln)
 
-				err = s.Serve(tcpKeepAliveListener{ln.(*net.TCPListener)})
+				err = s.Serve(ln)
 			case "https":
-				ln, err = getListener(s.Host, s.Port)
+				ln, err = webreplay.GetTCPKeepAliveListener(s.Host, s.Port, ma)
 
 				if err != nil {
 					break
@@ -503,7 +480,7 @@ func startServers(startTime time.Time, tlsconfig *tls.Config,
 				logServeStarted(s.Scheme, ln)
 
 				http2.ConfigureServer(s.Server, &http2.Server{})
-				tlsListener := tls.NewListener(tcpKeepAliveListener{ln.(*net.TCPListener)}, s.TLSConfig)
+				tlsListener := tls.NewListener(ln, s.TLSConfig)
 
 				err = s.Serve(tlsListener)
 			default:
@@ -539,7 +516,7 @@ func startProxyServer(host string, common *CommonConfig, httpPort int, httpsPort
 	proxy.Verbose = false
 	proxy.Logger = NilLogger{}
 
-	ln, err := getListener(host, common.httpProxyPort)
+	ln, err := webreplay.GetTCPKeepAliveListener(host, common.httpProxyPort, nil)
 
 	if err != nil {
 		log.Fatal(
@@ -715,7 +692,7 @@ func (r *RecordCommand) Run(c *cli.Context) error {
 		os.Exit(1)
 	}
 
-	startServers(startTime, tlsconfig, httpHandler, httpsHandler, &r.common)
+	startServers(startTime, tlsconfig, httpHandler, httpsHandler, &r.common, nil)
 
 	return nil
 }
@@ -861,7 +838,7 @@ func (r *ReplayCommand) Run(c *cli.Context) error {
 		os.Exit(1)
 	}
 
-	startServers(startTime, tlsconfig, httpHandler, httpsHandler, &r.common)
+	startServers(startTime, tlsconfig, httpHandler, httpsHandler, &r.common, ma)
 
 	return nil
 }
