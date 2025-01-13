@@ -76,8 +76,7 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 }
 
 func createKeepAliveConn(c *net.TCPConn, ln *tcpKeepAliveListener) net.Conn {
-	c.SetKeepAlive(true)
-	c.SetKeepAlivePeriod(defaultIdleTimeout)
+	c.SetKeepAlive(false)
 
 	return &keepAliveConn{
 		idleTimeout:    defaultIdleTimeout,
@@ -88,13 +87,19 @@ func createKeepAliveConn(c *net.TCPConn, ln *tcpKeepAliveListener) net.Conn {
 }
 
 func (c *keepAliveConn) Read(b []byte) (n int, err error) {
-	c.updateDeadline()
-	return c.TCPConn.Read(b)
+	n, err = c.TCPConn.Read(b)
+	if err == nil {
+		c.updateDeadline()
+	}
+	return n, err
 }
 
 func (c *keepAliveConn) Write(b []byte) (n int, err error) {
-	c.updateDeadline()
-	return c.TCPConn.Write(b)
+	n, err = c.TCPConn.Write(b)
+	if err == nil {
+		c.updateDeadline()
+	}
+	return n, err
 }
 
 func (c *keepAliveConn) updateDeadline() {
