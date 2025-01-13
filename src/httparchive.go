@@ -11,21 +11,26 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"crypto/tls"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/microsoft/web_replay/src/webreplay"
 	"github.com/urfave/cli/v2"
 )
 
-const usage = "%s [ls|cat|edit|merge|add|addAll|trim] [options] archive_file [output_file] [url]"
+const usage = "%s [ls|cat|edit|merge|add|addAll|trim|header|cookiesRemove|idleTimeout] [options] archive_file [output_file] [url]"
 
 type Config struct {
 	method, host, fullPath                                           string
@@ -362,6 +367,221 @@ func cookiesRemove(cfg *Config, archive *webreplay.Archive, outfile string) erro
 	return writeArchive(newA, outfile)
 }
 
+func isConnClosed(conn *tls.Conn) bool {
+	one := make([]byte, 1)
+	conn.SetReadDeadline(time.Now().Add(1 * time.Nanosecond))
+	_, err := conn.Read(one)
+
+	if err == io.EOF {
+		return true
+	}
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return false
+	}
+	return err != nil
+}
+
+func getIdleTimeout(serverName string) (time.Duration, error) {
+	conn, err := tls.DialWithDialer(
+		&net.Dialer{Timeout: 10 * time.Second},
+		"tcp",
+		fmt.Sprintf("%s:443", serverName),
+		&tls.Config{InsecureSkipVerify: true},
+	)
+
+	if err != nil {
+		return 0, fmt.Errorf("error dialing connection: %v", err)
+	}
+
+	defer conn.Close()
+
+	var elapsed time.Duration
+	startTime := time.Now()
+	lastPrintedTime := startTime
+
+	for {
+		elapsed = time.Since(startTime)
+		time.Sleep(1 * time.Second)
+		if isConnClosed(conn) {
+			break
+		}
+		if time.Since(lastPrintedTime) >= 5*time.Minute {
+			fmt.Printf("long connection: %s %v\n", serverName, elapsed)
+			lastPrintedTime = time.Now()
+		}
+		if elapsed >= 2*time.Hour {
+			fmt.Printf("ending non-stop connection: %s\n", serverName)
+			break
+		}
+	}
+
+	fmt.Println(serverName, elapsed)
+	return elapsed, nil
+}
+
+func getIdleTimeouts(serverNames map[string]string) map[string]time.Duration {
+	idleTimeouts := make(map[string]time.Duration)
+	sem := make(chan struct{}, 100)
+
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+
+	wg.Add(len(serverNames))
+
+	fmt.Printf("Obtaining idle timeouts for %d servers\n", len(serverNames))
+
+	for serverName, _ := range serverNames {
+		sem <- struct{}{}
+		go func(serverName string) {
+			defer func() { <-sem }()
+			defer wg.Done()
+
+			idleTimeout, err := getIdleTimeout(serverName)
+
+			if err != nil {
+				fmt.Printf("error finding idle timeout for %s: %v\n", serverName, err)
+			}
+
+			mu.Lock()
+			idleTimeouts[serverName] = idleTimeout
+			mu.Unlock()
+		}(serverName)
+	}
+
+	wg.Wait()
+	close(sem)
+
+	return idleTimeouts
+}
+
+func idleTimeoutRead(idle string) (map[string]time.Duration, error) {
+	idleTimeoutFile, err := os.Open(idle)
+	if err != nil {
+		return nil, fmt.Errorf("error opening file: %s", idle)
+	}
+	defer idleTimeoutFile.Close()
+
+	idleTimeoutBytes, err := io.ReadAll(idleTimeoutFile)
+	if err != nil {
+		return nil, fmt.Errorf("error reading file: %s", idle)
+	}
+
+	var temp map[string]int
+
+	if err := json.Unmarshal(idleTimeoutBytes, &temp); err != nil {
+		return nil, fmt.Errorf("error reading json: %s", err)
+	}
+
+	idleTimeouts := make(map[string]time.Duration)
+
+	for k, v := range temp {
+		idleTimeouts[k] = time.Duration(v) * time.Millisecond
+	}
+
+	return idleTimeouts, nil
+}
+
+func idleTimeout(cfg *Config, in string, idle string, out string) error {
+	inFileInfo, err := os.Stat(in)
+
+	if err != nil {
+		return fmt.Errorf("error opening archive: %s", in)
+	}
+
+	idleTimeouts, err := idleTimeoutRead(idle)
+	if err != nil {
+		return fmt.Errorf("error reading idle timeouts: %s", in)
+	}
+
+	type wArchive struct {
+		a       *webreplay.Archive
+		outFile string
+	}
+
+	archives := make([]*wArchive, 0)
+	serverNames := make(map[string]string)
+
+	if inFileInfo.IsDir() {
+		entries, err := os.ReadDir(in)
+
+		if err != nil {
+			return fmt.Errorf("error reading directory: %s", in)
+		}
+
+		if _, err := os.Stat(out); os.IsNotExist(err) {
+			err := os.MkdirAll(out, os.ModePerm)
+
+			if err != nil {
+				return fmt.Errorf("error making directory: %s", out)
+			}
+		}
+
+		for _, e := range entries {
+			if e.IsDir() {
+				continue
+			}
+
+			archive, err := webreplay.OpenArchive(filepath.Join(in, e.Name()))
+			if err != nil {
+				return fmt.Errorf("error opening archive: %s", in)
+			}
+
+			archives = append(archives, &wArchive{archive, filepath.Join(out, e.Name())})
+
+			for serverName, val := range archive.NegotiatedProtocol {
+				if _, ok := serverNames[serverName]; !ok {
+					serverNames[serverName] = val
+				}
+			}
+		}
+	} else {
+		archive, err := webreplay.OpenArchive(in)
+		if err != nil {
+			return fmt.Errorf("error opening archive: %s", in)
+		}
+
+		archives = append(archives, &wArchive{archive, out})
+		serverNames = archive.NegotiatedProtocol
+	}
+
+	idleTimeoutsTLS := getIdleTimeouts(serverNames)
+	unassignedServers := make(map[string]bool)
+
+	for _, archive := range archives {
+		archive.a.IdleTimeouts = make(map[string]time.Duration)
+
+		for serverName, _ := range archive.a.NegotiatedProtocol {
+			if idleTimeout, ok := idleTimeouts[serverName]; ok {
+				archive.a.IdleTimeouts[serverName] = idleTimeout
+			} else if idleTimeout, ok := idleTimeoutsTLS[serverName]; ok {
+				if idleTimeout >= 5*time.Minute {
+					fmt.Printf("using tls timeout: %s %v\n", serverName, idleTimeout)
+					archive.a.IdleTimeouts[serverName] = idleTimeout
+				} else {
+					fmt.Printf("not assigning timeout: %s %v\n", serverName, idleTimeout)
+					unassignedServers[serverName] = true
+				}
+			} else {
+				fmt.Printf("not assigning timeout: %s\n", serverName)
+				unassignedServers[serverName] = true
+			}
+		}
+
+		err = writeArchive(archive.a, archive.outFile)
+
+		if err != nil {
+			fmt.Printf("error writing archive: %v\n", err)
+		}
+	}
+
+	if len(unassignedServers) > 0 {
+		fmt.Printf("unassigned servers: %d\n", len(unassignedServers))
+	}
+
+	return nil
+}
+
 // compressResponse compresses resp.Body in place according to resp's Content-Encoding header.
 func compressResponse(resp *http.Response) error {
 	ce := strings.ToLower(resp.Header.Get("Content-Encoding"))
@@ -507,6 +727,16 @@ func main() {
 			Before:    checkArgs("cookiesRemove", 2),
 			Action: func(c *cli.Context) error {
 				return cookiesRemove(cfg, loadArchiveOrDie(c, 0), c.Args().Get(1))
+			},
+		},
+		&cli.Command{
+			Name:      "idleTimeout",
+			Usage:     "Add server idle timeouts to an archive (or multiple)",
+			ArgsUsage: "input_archive idle_timeouts output_archive",
+			Flags:     cfg.DefaultFlags(),
+			Before:    checkArgs("idleTimeout", 3),
+			Action: func(c *cli.Context) error {
+				return idleTimeout(cfg, c.Args().Get(0), c.Args().Get(1), c.Args().Get(2))
 			},
 		},
 	}
