@@ -410,7 +410,7 @@ func getIdleTimeout(serverName string) (time.Duration, error) {
 			fmt.Printf("long connection: %s %v\n", serverName, elapsed)
 			lastPrintedTime = time.Now()
 		}
-		if elapsed >= 2*time.Hour {
+		if elapsed >= 1*time.Hour {
 			fmt.Printf("ending non-stop connection: %s\n", serverName)
 			break
 		}
