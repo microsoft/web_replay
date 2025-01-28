@@ -35,7 +35,7 @@ Modify the host resolver rules of the browser by using `--host-resolver-rules`:
 for the specified browser located on the taskbar. Use in the following way:
 
 ```
-.\set_args.ps1 <host> <http_port> <https_port> <browser>
+.\set_args.ps1 web_replay <host> <http_port> <https_port> <browser>
 ```
 
 ```
