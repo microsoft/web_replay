@@ -4,7 +4,7 @@
 import sys
 import json
 
-if len(sys.argv) < 2:
+if len(sys.argv) < 3:
     exit(1)
 
 with open(sys.argv[1], 'r') as file:
@@ -45,5 +45,5 @@ for event in data['events']:
     elif event['type'] != EVENT_TYPE_HTTP2_SESSION_RECV_GOAWAY:
         id_map[_id]['prev_time'] = int(event['time'])
 
-with open('idle_timeouts.json', 'w') as f:
+with open(sys.argv[2], 'w') as f:
     json.dump(host_map, f, indent=4, sort_keys=True)

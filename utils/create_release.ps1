@@ -3,6 +3,9 @@
 
 $RELEASE_DIR = "web_replay"
 
+.\build.ps1 web_replay
+.\build.ps1 archive
+
 New-Item -ItemType Directory -Path $RELEASE_DIR
 
 Copy-Item -Path "bin" -Destination $RELEASE_DIR -Recurse
@@ -11,6 +14,7 @@ Copy-Item -Path "deterministic" -Destination $RELEASE_DIR -Recurse
 Copy-Item -Path "utils\set_args.ps1" -Destination $RELEASE_DIR
 Copy-Item -Path "utils\remove_args.ps1" -Destination $RELEASE_DIR
 Copy-Item -Path "utils\install_certs.ps1" -Destination $RELEASE_DIR
+Copy-Item -Path "utils\parse_netlog.py" -Destination $RELEASE_DIR
 Copy-Item -Path "README.md" -Destination $RELEASE_DIR
 Copy-Item -Path "NOTICE.md" -Destination $RELEASE_DIR
 Copy-Item -Path "LICENSE" -Destination $RELEASE_DIR
