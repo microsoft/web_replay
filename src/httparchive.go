@@ -360,11 +360,14 @@ func cookiesRemove(cfg *Config, archive *webreplay.Archive, outfile string) erro
 		return req, resp, nil
 	})
 
+	// Update the original archive requests to retain the remaining data
+	archive.Requests = newA.Requests
+
 	if err != nil {
 		return fmt.Errorf("error editing archive:\n%v", err)
 	}
 
-	return writeArchive(newA, outfile)
+	return writeArchive(archive, outfile)
 }
 
 func isConnClosed(conn *tls.Conn) bool {
