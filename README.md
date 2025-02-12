@@ -9,6 +9,8 @@ recording and replaying web pages. Originally based on [Catapult > Web Page Repl
 In order for the web_replay server to be trusted by the browser, certificates minted
 and used by web_replay must be trusted. Multiple options are possible to support this:
 
+#### Browser Parameter
+
 Specify public key hashes for the browser to ignore using `--ignore-certificate-errors-spki-list`.
 Run `utils\create_pk_hash.sh <cert>` to output the hash to include. The following ignores the included
 two leaf certificates:
@@ -16,6 +18,8 @@ two leaf certificates:
 ```
 --ignore-certificate-errors-spki-list=2FBkVuYq8NvFRbHkFRFnXLd/FJK5tu7m/b+V7s/TUL4=,P0/jlVD2vgAtt9UmEeZf7IrHAva3Fs8N+4V9glmvwkc=
 ```
+
+#### Certificate Store
 
 Install the certificate chain on a test machine using `install_certs.ps1`. **Use this with care
 as installing a root CA compromises your machine**.
@@ -52,38 +56,59 @@ edgecanary
 chrome
 ```
 
+Another method for pointing the browser to web_replay is by configuring proxy settings. This can
+be done within the browser settings itself, using the browser parameter `--proxy-server`, or within
+system settings.
+
 ### Record an archive
 
 Standard method:
 
 ```
-.\bin\web_replay.exe record --host=<host> --http_port=<http_port> --https_port=<https_port> <archive_file>
+.\bin\web_replay.exe record --host=<host> --http_port=<http_port> --https_port=<https_port> <archive>
 ```
 
 Proxy method:
 
 ```
-.\bin\web_replay.exe record --host=<host> --http_proxy_port=<http_proxy_port> <archive_file>
+.\bin\web_replay.exe record --host=<host> --http_proxy_port=<http_proxy_port> <archive>
 ```
+
+`<archive>` is either a single file or a folder.
 
 ### Replay an archive
 
 Standard method:
 
 ```
-.\bin\web_replay.exe replay --host=<host> --http_port=<http_port> --https_port=<https_port> <archive_file>
+.\bin\web_replay.exe replay --host=<host> --http_port=<http_port> --https_port=<https_port> <archive>
 ```
 
 Proxy method:
 
 ```
-.\bin\web_replay.exe replay --host=<host> --http_proxy_port=<http_proxy_port> <archive_file>
+.\bin\web_replay.exe replay --host=<host> --http_proxy_port=<http_proxy_port> <archive>
 ```
+
+`<archive>` is either a single file or a folder.
+
+The optional parameter `--excludes_list` accepts a space-separated list of domains for
+which web_replay will always fetch data from the live internet.
+
+### Special URL Paths
+
+The following table includes some common special URL paths that perform custom web_replay actions:
+
+| Path                                  | Details                                                                         |
+| ------------------------------------- | ------------------------------------------------------------------------------- |
+| /web-page-replay-generate-200         | Generate a 200 ok response                                                      |
+| /web-page-replay-command-exit         | Shutdown web_replay server                                                      |
+| /web-page-replay-change-archive?n={n} | Change active archive file. {n} is the archive file without the .json.gz suffix |
 
 ### Using archive editor
 
 Use the following command to merge multiple archives. Designate
-one as the base, and one as input
+one as the base, and one as input:
 
 ```
 .\bin\archive.exe merge <base_file> <input_file> <output_file>
