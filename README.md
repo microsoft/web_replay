@@ -97,7 +97,8 @@ which web_replay will always fetch data from the live internet.
 
 ### Special URL Paths
 
-The following table includes some common special URL paths that perform custom web_replay actions:
+The following table includes some common special URL paths that perform custom web_replay actions
+during a recording or replay:
 
 | Path                                  | Details                                                                         |
 | ------------------------------------- | ------------------------------------------------------------------------------- |
