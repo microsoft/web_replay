@@ -15,6 +15,7 @@ var commonDeterministicExclude = []string{
 	`(.+[.])*nytimes\.com`,
 	`(.+[.])*amazon\.com`,
 	`(.+[.])*bbc\.com`,
+	domainToRegexp("google.com"),
 }
 
 var deterministicHostMap = map[string][]string{
@@ -25,6 +26,7 @@ var deterministicHostMap = map[string][]string{
 	"amazon":  {`.*amazon\.com`},
 	"bbc":     {`.*bbc\.com`},
 	"reddit":  {`.*reddit\.com`},
+	"google":  {domainToRegexp("google.com")},
 }
 
 var websiteHostMap = map[string]string{
@@ -63,6 +65,13 @@ func createRe(reList []string) string {
 func domainToRegexp(domain string) string {
 	return fmt.Sprintf(
 		`^(.+[.])*%s$`,
+		regexp.QuoteMeta(domain),
+	)
+}
+
+func domainToRegexpExact(domain string) string {
+	return fmt.Sprintf(
+		`^%s$`,
 		regexp.QuoteMeta(domain),
 	)
 }
