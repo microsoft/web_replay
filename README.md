@@ -60,6 +60,9 @@ Another method for pointing the browser to web_replay is by configuring proxy se
 be done within the browser settings itself, using the browser parameter `--proxy-server`, or within
 system settings.
 
+**Note: it may be necessary to terminate all the browser processes before launching for the
+command-line parameters to be included.**
+
 ### Record an archive
 
 Standard method:
