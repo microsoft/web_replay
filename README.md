@@ -6,8 +6,8 @@ recording and replaying web pages. Originally based on [Catapult > Web Page Repl
 
 ### Certificate installation
 
-In order for the web_replay server to be trusted by the browser, certificates minted
-and used by web_replay must be trusted. Multiple options are possible to support this:
+In order for the web_replay server (on **HOST PC**) to be trusted by the browser (on Device Under Test, **DUT**), the certificates generated
+and used by web_replay must be added to the trusted certificate store on the DUT. Multiple options are possible to support this:
 
 #### Browser Parameter
 
@@ -21,7 +21,7 @@ two leaf certificates:
 
 #### Certificate Store
 
-Install the certificate chain on a test machine using `install_certs.ps1`. **Use this with care
+Install the certificate chain on a test machine (**DUT**) using `install_certs.ps1`. ⚠️ **Use this with care as installing a root CA compromises your machine**
 as installing a root CA compromises your machine**.
 
 The certificates listed in `.\certs` are used by default. These can be modified by replacing the
@@ -29,18 +29,26 @@ chain with a different one.
 
 ### Point browser to web_replay
 
-Modify the host resolver rules of the browser by using `--host-resolver-rules`:
+Modify the host resolver rules of the browser on **DUT** by using `--host-resolver-rules`:
 
 ```
 --host-resolver-rules="MAP *:80 <host>:<http_port>,MAP *:443 <host>:<https_port>"
 ```
+For example:
+```
+--host-resolver-rules="MAP *:80 192.168.31.16:80,MAP *:443 192.168.31.16:8443"
+``
 
-`set_args.ps1` and `remove_args.ps1` handle setting and removing this argument
-for the specified browser located on the taskbar. Use in the following way:
+`set_args.ps1` and `remove_args.ps1` are PowerShell scripts that handle setting and removing browser arguments for the specified browser located on the taskbar of DUT. 
+`set_args.ps1` modifies the browser shortcut to include the specified arguments, while `remove_args.ps1` restores the shortcut to its original state. Use them in the following way:
 
 ```
 .\set_args.ps1 web_replay <host> <http_port> <https_port> <browser>
 ```
+For example:
+```
+.\set_args.ps1 web_replay 192.168.31.16 80 8443 edge
+``
 
 ```
 .\remove_args.ps1 <browser>
@@ -56,7 +64,7 @@ edgecanary
 chrome
 ```
 
-Another method for pointing the browser to web_replay is by configuring proxy settings. This can
+Another method for pointing the browser on DUT to web_replay is by configuring proxy settings. This can
 be done within the browser settings itself, using the browser parameter `--proxy-server`, or within
 system settings.
 
@@ -65,29 +73,50 @@ command-line parameters to be included.**
 
 ### Record an archive
 
-Standard method:
+**Standard method:**
+
+> **⚠️ Important:** Please run the command from the `web_replay` folder instead of under the **bin** folder. Running `web_replay.exe` directly from the bin folder may cause errors.
 
 ```
 .\bin\web_replay.exe record --host=<host> --http_port=<http_port> --https_port=<https_port> <archive>
 ```
 
-Proxy method:
+For example:
+```
+**.\bin\**web_replay.exe record --host=192.168.31.16 --http_port=8080 --https_port=8443 c:\temp\archive
+``
+> [!NOTE]
+> Please run the command from web_replay folder instead of under **bin** folder. Run web_replay.exe under bin folder directly may cause errors.
+
+**Proxy method:**
 
 ```
 .\bin\web_replay.exe record --host=<host> --http_proxy_port=<http_proxy_port> <archive>
 ```
 
+
 `<archive>` is either a single file or a folder.
+> One HOST PC can record only one DUT at a time. To record on multiple DUTs simultaneously, you must run separate instances of web_replay on different HOST PCs, with each DUT pointing to its respective HOST PC.
+> One HOST PC can record only one DUT at a time. If you want to record on multiple DUTs, you need to run
+> Record multiple instances of web_replay on different HOST PCs. Each DUT must be pointed to its own HOST PC.
+
 
 ### Replay an archive
 
-Standard method:
+**Standard method:**
 
 ```
 .\bin\web_replay.exe replay --host=<host> --http_port=<http_port> --https_port=<https_port> <archive>
 ```
+For example:
+```
+**.\bin\**web_replay.exe replay --host=192.168.31.16 --http_port=8080 --https_port=8443 c:\temp\archive
+``
+> [!NOTE]
+> Please run the command from web_replay folder instead of under **bin** folder. Run web_replay.exe under bin folder directly may cause errors.
 
-Proxy method:
+
+**Proxy method:**
 
 ```
 .\bin\web_replay.exe replay --host=<host> --http_proxy_port=<http_proxy_port> <archive>
