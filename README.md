@@ -21,8 +21,7 @@ two leaf certificates:
 
 #### Certificate Store
 
-Install the certificate chain on a test machine (**DUT**) using `install_certs.ps1`. ⚠️ **Use this with care as installing a root CA compromises your machine**
-as installing a root CA compromises your machine**.
+Install the certificate chain on a test machine (**DUT**) using `install_certs.ps1`. **Use this with care as installing a root CA compromises your machine**.
 
 The certificates listed in `.\certs` are used by default. These can be modified by replacing the
 chain with a different one.
@@ -75,7 +74,8 @@ command-line parameters to be included.**
 
 **Standard method:**
 
-> **⚠️ Important:** Please run the command from the `web_replay` folder instead of under the **bin** folder. Running `web_replay.exe` directly from the bin folder may cause errors.
+> [!NOTE]
+> Please run the command from the `web_replay` folder instead of under the **bin** folder. Running `web_replay.exe` directly from the bin folder may cause errors.
 
 ```
 .\bin\web_replay.exe record --host=<host> --http_port=<http_port> --https_port=<https_port> <archive>
