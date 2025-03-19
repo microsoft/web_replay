@@ -29,21 +29,21 @@ chain with a different one.
 ### Point browser to web_replay
 
 Modify the host resolver rules of the browser on **DUT** by using `--host-resolver-rules`:
-
 ```
 --host-resolver-rules="MAP *:80 <host>:<http_port>,MAP *:443 <host>:<https_port>"
 ```
+
 For example:
 ```
 --host-resolver-rules="MAP *:80 192.168.31.16:80,MAP *:443 192.168.31.16:8443"
-``
+```
 
 `set_args.ps1` and `remove_args.ps1` are PowerShell scripts that handle setting and removing browser arguments for the specified browser located on the taskbar of DUT. 
 `set_args.ps1` modifies the browser shortcut to include the specified arguments, while `remove_args.ps1` restores the shortcut to its original state. Use them in the following way:
-
 ```
 .\set_args.ps1 web_replay <host> <http_port> <https_port> <browser>
 ```
+
 For example:
 ```
 .\set_args.ps1 web_replay 192.168.31.16 80 8443 edge
