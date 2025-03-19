@@ -78,13 +78,9 @@ command-line parameters to be included.**
 
 **Standard method:**
 
-> [!NOTE]
-> Please run the command from the `web_replay` folder instead of under the **bin** folder. Running `web_replay.exe` directly from the bin folder may cause errors.
-
 ```
 .\bin\web_replay.exe record --host=<host> --http_port=<http_port> --https_port=<https_port> <archive>
 ```
-
 For example:
 ```
 .\bin\web_replay.exe record --host=192.168.31.16 --http_port=8080 --https_port=8443 c:\temp\archive
