@@ -83,7 +83,7 @@ command-line parameters to be included.**
 
 For example:
 ```
-**.\bin\**web_replay.exe record --host=192.168.31.16 --http_port=8080 --https_port=8443 c:\temp\archive
+.\bin\web_replay.exe record --host=192.168.31.16 --http_port=8080 --https_port=8443 c:\temp\archive
 ```
 > [!NOTE]
 > Please run the command from web_replay folder instead of under **bin** folder. Run web_replay.exe under bin folder directly may cause errors.
@@ -110,7 +110,7 @@ For example:
 ```
 For example:
 ```
-**.\bin\**web_replay.exe replay --host=192.168.31.16 --http_port=8080 --https_port=8443 c:\temp\archive
+.\bin\web_replay.exe replay --host=192.168.31.16 --http_port=8080 --https_port=8443 c:\temp\archive
 ```
 > [!NOTE]
 > Please run the command from web_replay folder instead of under **bin** folder. Run web_replay.exe under bin folder directly may cause errors.
