@@ -71,8 +71,9 @@ Another method for pointing the browser on DUT to web_replay is by configuring p
 be done within the browser settings itself, using the browser parameter `--proxy-server`, or within
 system settings.
 
-**Note: it may be necessary to terminate all the browser processes before launching for the
-command-line parameters to be included.**
+> [!WARNING]
+> It may be necessary to terminate all the browser processes before launching for the
+> command-line parameters to be included.
 
 ### Record an archive
 
