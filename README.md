@@ -43,14 +43,18 @@ For example:
 ```
 .\set_args.ps1 web_replay <host> <http_port> <https_port> <browser>
 ```
-
 For example:
 ```
 .\set_args.ps1 web_replay 192.168.31.16 80 8443 edge
 ```
 
+If you want to restore the browser shortcut to its original state, use:
 ```
 .\remove_args.ps1 <browser>
+```
+For example:
+```
+.\remove_args.ps1 edge
 ```
 
 `<browser>` is optional and is one of (default is `edge`):
