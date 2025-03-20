@@ -86,7 +86,7 @@ For example:
 ```
 .\bin\web_replay.exe record --host=192.168.31.16 --http_port=8080 --https_port=8443 c:\temp\archive
 ```
-> [!NOTE]
+> [!WARNING]
 > Please run the command from web_replay folder instead of under **bin** folder. Run web_replay.exe under bin folder directly may cause errors.
 
 **Proxy method:**
@@ -95,12 +95,16 @@ For example:
 .\bin\web_replay.exe record --host=<host> --http_proxy_port=<http_proxy_port> <archive>
 ```
 
+> [!NOTE]
+> `<archive>` is either a single file or a folder.
+> One HOST PC can record only one DUT at a time. To record on multiple DUTs, you need to run separate instances of web_replay on different HOST PCs, with each DUT pointing to its respective HOST PC.
 
-`<archive>` is either a single file or a folder.
-> One HOST PC can record only one DUT at a time. To record on multiple DUTs simultaneously, you must run separate instances of web_replay on different HOST PCs, with each DUT pointing to its respective HOST PC.
-> One HOST PC can record only one DUT at a time. If you want to record on multiple DUTs, you need to run
-> Record multiple instances of web_replay on different HOST PCs. Each DUT must be pointed to its own HOST PC.
-
+> [!NOTE]
+> On the HOST PC, need to open the port for the web_replay server to listen on. You can specify a different port per above the `--http_port` or `--https_port` options.
+> For example (if default port is 8080 for HTTP and 8443 for HTTPS):
+> ```
+> netsh advfirewall firewall add rule name="web_replay" protocol=TCP dir=in localport=8080,8443 action=allow
+> ```
 
 ### Replay an archive
 
