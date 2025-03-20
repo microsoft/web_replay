@@ -72,8 +72,8 @@ be done within the browser settings itself, using the browser parameter `--proxy
 system settings.
 
 > [!WARNING]
-> It may be necessary to terminate all the browser processes before launching for the
-> command-line parameters to be included.
+> It may be necessary to terminate all the browser processes before launching for the command-line parameters to be included.
+> If Edge's [**Startup Boost**](https://support.microsoft.com/en-us/topic/get-help-with-startup-boost-ebef73ed-5c72-462f-8726-512782c5e442) feature is enabled, it may be necessary to disable it to ensure the command-line parameters are included.
 
 ### Record an archive
 
