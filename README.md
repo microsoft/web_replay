@@ -6,8 +6,7 @@ recording and replaying web pages. Originally based on [Catapult > Web Page Repl
 
 ### Certificate installation
 
-In order for the web_replay server (on **HOST PC**) to be trusted by the browser (on Device Under Test, **DUT**), the certificates generated
-and used by web_replay must be added to the trusted certificate store on the DUT. Multiple options are possible to support this:
+In order for the web_replay server on **HOST PC** to be trusted by the browser on Device Under Test ( **DUT**), the certificates generated and used by web_replay can be added to the trusted certificate store on the DUT, or using the '--ignore-certificate-errors-spki-list' browser parameter can be used instead. Multiple options are possible to support this:
 
 #### Browser Parameter
 
@@ -26,7 +25,8 @@ Install the certificate chain on a test machine (**DUT**) using `install_certs.p
 The certificates listed in `.\certs` are used by default. These can be modified by replacing the
 chain with a different one.
 
-### Point browser to web_replay
+
+### Point browser to web_replay on DUT
 
 Modify the host resolver rules of the browser on **DUT** by using `--host-resolver-rules`:
 ```
@@ -75,7 +75,12 @@ system settings.
 > It may be necessary to terminate all the browser processes before launching for the command-line parameters to be included.
 > If Edge's [**Startup Boost**](https://support.microsoft.com/en-us/topic/get-help-with-startup-boost-ebef73ed-5c72-462f-8726-512782c5e442) feature is enabled, it may be necessary to disable it to ensure the command-line parameters are included.
 
-### Record an archive
+> [!TIP]
+> The optional parameter `--excludes_list` accepts a space-separated list of domains for
+> which web_replay will always fetch data from the live internet. 
+
+### Record an archive on HOST PC
+The web_replay server on the HOST PC can be started in two ways: **Standard** and **Proxy**. The **Standard** method is recommended for most cases, while the **Proxy** method is useful when the DUT cannot be configured to point to the HOST PC directly.
 
 **Standard method:**
 
@@ -95,9 +100,7 @@ For example:
 .\bin\web_replay.exe record --host=<host> --http_proxy_port=<http_proxy_port> <archive>
 ```
 
-> [!NOTE]
-> `<archive>` is either a single file or a folder.
-> One HOST PC can record only one DUT at a time. To record on multiple DUTs, you need to run separate instances of web_replay on different HOST PCs, with each DUT pointing to its respective HOST PC.
+`<archive>` is either a single file or a folder.
 
 > [!NOTE]
 > On the HOST PC, need to open the port for the web_replay server to listen on. You can specify a different port per above the `--http_port` or `--https_port` options.
@@ -129,8 +132,12 @@ For example:
 
 `<archive>` is either a single file or a folder.
 
-The optional parameter `--excludes_list` accepts a space-separated list of domains for
-which web_replay will always fetch data from the live internet.
+> [!NOTE]
+> There is no strict limitation on recording or replaying with multiple DUTs simultaneously if **archive** is a **folder**. A single HOST PC can handle multiple DUTs without issue. 
+> However, when using multiple archives, be aware of the following:
+> - If the archive is a single file, switching between archives requires restarting the web_replay server with the new archive specified.
+> - If the archive is a folder containing multiple archive files, you can switch between archives dynamically using the special URL path `/web-page-replay-change-archive?n={n}`. Frequent switching between archives in this mode may lead to potential issues or unexpected behavior.
+
 
 ### Special URL Paths
 
