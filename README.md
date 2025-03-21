@@ -135,6 +135,7 @@ For example:
 > [!NOTE]
 > There is no strict limitation on recording or replaying with multiple DUTs simultaneously if **archive** is a **folder**. A single HOST PC can handle multiple DUTs without issue. 
 > However, when using multiple archives, be aware of the following:
+> - Each DUT need to record or replay with its own archive.
 > - If the archive is a single file, switching between archives requires restarting the web_replay server with the new archive specified.
 > - If the archive is a folder containing multiple archive files, you can switch between archives dynamically using the special URL path `/web-page-replay-change-archive?n={n}`. Frequent switching between archives in this mode may lead to potential issues or unexpected behavior.
 
