@@ -90,6 +90,9 @@ For example:
 > [!WARNING]
 > Please run the command from web_replay folder instead of under **bin** folder. Run web_replay.exe under bin folder directly may cause errors.
 
+> [!NOTE]
+> Once you have finished recording, use `Ctrl+C` to stop the recording process.
+
 **Proxy method:**
 
 ```
