@@ -99,7 +99,7 @@ For example:
 .\bin\web_replay.exe record --host=<host> --http_proxy_port=<http_proxy_port> <archive>
 ```
 
-`<archive>` is either a single file or a folder.
+`<archive>` is either a single file or a folder. **Using a folder is recommended as it can handle multiple DUTs simultaneously.**
 
 > [!NOTE]
 > On the HOST PC, need to open the port for the web_replay server to listen on. You can specify a different port per above the `--http_port` or `--https_port` options.
@@ -129,18 +129,14 @@ For example:
 .\bin\web_replay.exe replay --host=<host> --http_proxy_port=<http_proxy_port> <archive>
 ```
 
-`<archive>` is either a single file or a folder.
+`<archive>` is either a single file or a folder. **Using a folder is recommended as it can handle multiple DUTs simultaneously.**
 
 > [!TIP]
-> The optional parameter `--excludes_list` accepts a space-separated list of domains for
-> which web_replay will always fetch data from the live internet. 
+> The optional parameter `--excludes_list` accepts a space-separated list of domains for which web_replay will always fetch data from the live internet. 
 
 > [!NOTE]
-> There is no strict limitation on recording or replaying with multiple DUTs simultaneously if **archive** is a **folder**. A single HOST PC can handle multiple DUTs without issue. 
-> However, when using multiple archives, be aware of the following:
-> - Each DUT needs to record and replay with its own archive.
-> - If the archive is a single file, switching between archives requires restarting the web_replay server with the new archive specified.
-> - If the archive is a folder containing multiple archive files, you can switch between archives dynamically using the special URL path `/web-page-replay-change-archive?n={n}`. Frequent switching between archives in this mode may lead to potential issues or unexpected behavior.
+> A single HOST PC can handle multiple DUTs simultaneously. When using a folder as an archive if specific issues arise, that DUT may need to record and replay its own dedicated archive.
+> If the archive is a folder containing multiple archive files, you can switch between archives dynamically using the special URL path `/web-page-replay-change-archive?n={n}`.
 
 ### Special URL Paths
 
