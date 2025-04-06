@@ -11,7 +11,10 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"crypto"
+	"crypto/rand"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -30,7 +33,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-const usage = "%s [ls|cat|edit|merge|add|addAll|trim|header|cookiesRemove|idleTimeout] [options] archive_file [output_file] [url]"
+const usage = "%s [ls|cat|edit|merge|add|addAll|trim|header|cookiesRemove|idleTimeout|certsUpdate] [options] archive_file [output_file] [url]"
 
 type Config struct {
 	method, host, fullPath                                           string
@@ -525,9 +528,11 @@ func idleTimeout(cfg *Config, in string, idle string, out string) error {
 				continue
 			}
 
-			archive, err := webreplay.OpenArchive(filepath.Join(in, e.Name()))
+			inA := filepath.Join(in, e.Name())
+
+			archive, err := webreplay.OpenArchive(inA)
 			if err != nil {
-				return fmt.Errorf("error opening archive: %s", in)
+				return fmt.Errorf("error opening archive: %s", inA)
 			}
 
 			archives = append(archives, &wArchive{archive, filepath.Join(out, e.Name())})
@@ -580,6 +585,143 @@ func idleTimeout(cfg *Config, in string, idle string, out string) error {
 
 	if len(unassignedServers) > 0 {
 		fmt.Printf("unassigned servers: %d\n", len(unassignedServers))
+	}
+
+	return nil
+}
+
+type certCtx struct {
+	intCert *x509.Certificate
+	intKey  crypto.PrivateKey
+}
+
+func createCertCtx() (*certCtx, error) {
+	ctx := new(certCtx)
+
+	intCertFile := "certs\\int_cert.pem"
+	intKeyFile := "certs\\int_key.pem"
+
+	// Load int certs
+	fmt.Printf("Loading int cert from %v\n", intCertFile)
+	fmt.Printf("Loading int key from %v\n", intKeyFile)
+
+	intCert, err := tls.LoadX509KeyPair(intCertFile, intKeyFile)
+
+	if err != nil {
+		return nil, fmt.Errorf("error opening int cert or int key files: %v", err)
+	}
+
+	ctx.intCert, err = webreplay.GetIntCert(intCert)
+
+	if err != nil {
+		return nil, fmt.Errorf("error obtaining int certificate: %v", err)
+	}
+
+	ctx.intKey = intCert.PrivateKey
+
+	return ctx, nil
+}
+
+func updateCertDateRange(derBytes []byte, ctx *certCtx) ([]byte, error) {
+	cert, err := x509.ParseCertificate(derBytes)
+
+	if err != nil {
+		return nil, fmt.Errorf("error parsing certificate")
+	}
+
+	dt := time.Now()
+
+	cert.NotBefore = dt.Add(-24 * time.Hour)
+
+	// Certs cannot be valid for longer than 12 mths.
+	cert.NotAfter = dt.Add(12 * 30 * 24 * time.Hour)
+
+	return x509.CreateCertificate(rand.Reader, cert, ctx.intCert, cert.PublicKey, ctx.intKey)
+}
+
+func certsUpdateArchive(archive *webreplay.Archive, out string, ctx *certCtx) error {
+	for host, derBytes := range archive.Certs {
+		certBytes := webreplay.ParseDerBytes(derBytes)
+		totalDerBytesNew := []byte{}
+
+		for i := 0; i < len(certBytes); i++ {
+			derBytesNew, err := updateCertDateRange(certBytes[i], ctx)
+
+			if err != nil {
+				return fmt.Errorf("error updating certificate date range")
+			}
+
+			totalDerBytesNew = append(totalDerBytesNew, derBytesNew...)
+		}
+
+		archive.Certs[host] = totalDerBytesNew
+	}
+
+	err := writeArchive(archive, out)
+
+	if err != nil {
+		return fmt.Errorf("error writing archive: %v\n", err)
+	}
+
+	return nil
+}
+
+func certsUpdate(cfg *Config, in string, out string) error {
+	inFileInfo, err := os.Stat(in)
+
+	if err != nil {
+		return fmt.Errorf("error opening archive: %s", in)
+	}
+
+	ctx, err := createCertCtx()
+
+	if err != nil {
+		return fmt.Errorf("error creating certificate context")
+	}
+
+	if inFileInfo.IsDir() {
+		entries, err := os.ReadDir(in)
+
+		if err != nil {
+			return fmt.Errorf("error reading directory: %s", in)
+		}
+
+		if _, err := os.Stat(out); os.IsNotExist(err) {
+			err := os.MkdirAll(out, os.ModePerm)
+
+			if err != nil {
+				return fmt.Errorf("error making directory: %s", out)
+			}
+		}
+
+		for _, e := range entries {
+			if e.IsDir() {
+				continue
+			}
+
+			inA := filepath.Join(in, e.Name())
+
+			archive, err := webreplay.OpenArchive(inA)
+			if err != nil {
+				return fmt.Errorf("error opening archive: %s", inA)
+			}
+
+			err = certsUpdateArchive(archive, filepath.Join(out, e.Name()), ctx)
+			if err != nil {
+				return fmt.Errorf("error updating archive certificates")
+			}
+		}
+	} else {
+		archive, err := webreplay.OpenArchive(in)
+		if err != nil {
+			return fmt.Errorf("error opening archive: %s", in)
+		}
+
+		err = certsUpdateArchive(archive, out, ctx)
+		if err != nil {
+			return fmt.Errorf("error updating archive certificates")
+		}
+
 	}
 
 	return nil
@@ -740,6 +882,16 @@ func main() {
 			Before:    checkArgs("idleTimeout", 3),
 			Action: func(c *cli.Context) error {
 				return idleTimeout(cfg, c.Args().Get(0), c.Args().Get(1), c.Args().Get(2))
+			},
+		},
+		&cli.Command{
+			Name:      "certsUpdate",
+			Usage:     "Update host certificates for an archive (or multiple)",
+			ArgsUsage: "input_archive output_archive",
+			Flags:     cfg.DefaultFlags(),
+			Before:    checkArgs("certsUpdate", 2),
+			Action: func(c *cli.Context) error {
+				return certsUpdate(cfg, c.Args().Get(0), c.Args().Get(1))
 			},
 		},
 	}
