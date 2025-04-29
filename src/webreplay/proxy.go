@@ -162,10 +162,7 @@ func (proxy *replayingProxy) ServeHTTP(w http.ResponseWriter, req *http.Request)
 			}
 		}
 
-		// Transform.
-		for _, t := range proxy.ma.CurrentTransformers() {
-			t.Transform(req, resp)
-		}
+		// Skip transformation for exclude requests
 
 		responseBodyAfterTransform, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
