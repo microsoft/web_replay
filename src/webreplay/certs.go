@@ -22,13 +22,13 @@ import (
 // Returns a TLS configuration that serves a recorded server leaf cert signed by
 // root CA.
 func ReplayTLSConfig(leafs []tls.Certificate, tls_int tls.Certificate, ma *MultipleArchive) (*tls.Config, error) {
-	leaf_certs, err := getLeafCerts(leafs)
+	leaf_certs, err := GetLeafCerts(leafs)
 
 	if err != nil {
 		return nil, fmt.Errorf("bad local certs: %v", err)
 	}
 
-	tls_int_cert, err := getIntCert(tls_int)
+	tls_int_cert, err := GetIntCert(tls_int)
 
 	if err != nil {
 		return nil, fmt.Errorf("bad local cert: %v", err)
@@ -44,13 +44,13 @@ func ReplayTLSConfig(leafs []tls.Certificate, tls_int tls.Certificate, ma *Multi
 // Returns a TLS configuration that serves a server leaf cert fetched over the
 // network on demand.
 func RecordTLSConfig(leafs []tls.Certificate, tls_int tls.Certificate, mwa *MultipleWritableArchive) (*tls.Config, error) {
-	leaf_certs, err := getLeafCerts(leafs)
+	leaf_certs, err := GetLeafCerts(leafs)
 
 	if err != nil {
 		return nil, fmt.Errorf("bad local certs: %v", err)
 	}
 
-	tls_int_cert, err := getIntCert(tls_int)
+	tls_int_cert, err := GetIntCert(tls_int)
 
 	if err != nil {
 		return nil, fmt.Errorf("bad local cert: %v", err)
@@ -63,7 +63,7 @@ func RecordTLSConfig(leafs []tls.Certificate, tls_int tls.Certificate, mwa *Mult
 	}, nil
 }
 
-func getLeafCerts(leafs []tls.Certificate) ([]*x509.Certificate, error) {
+func GetLeafCerts(leafs []tls.Certificate) ([]*x509.Certificate, error) {
 	leaf_certs := []*x509.Certificate{}
 
 	for _, leaf := range leafs {
@@ -82,7 +82,7 @@ func getLeafCerts(leafs []tls.Certificate) ([]*x509.Certificate, error) {
 	return leaf_certs, nil
 }
 
-func getIntCert(tls_int tls.Certificate) (*x509.Certificate, error) {
+func GetIntCert(tls_int tls.Certificate) (*x509.Certificate, error) {
 	tls_int_cert, err := x509.ParseCertificate(tls_int.Certificate[0])
 
 	if err != nil {
@@ -235,7 +235,7 @@ func (tp *tlsProxy) getReplayConfigForClient(clientHello *tls.ClientHelloInfo) (
 		derBytes = tp.dummy_certs_map[h]
 	}
 
-	certBytes := parseDerBytes(derBytes)
+	certBytes := ParseDerBytes(derBytes)
 
 	certificates := []tls.Certificate{}
 
@@ -265,7 +265,7 @@ func buildNextProtos(negotiatedProtocol string) []string {
 //  1. 0x30, one byte of length field
 //  2. 0x30, 0x81, one byte of length field
 //  3. 0x30, 0x82, two bytes of length field
-func parseDerBytes(derBytes []byte) [][]byte {
+func ParseDerBytes(derBytes []byte) [][]byte {
 	var certBytes [][]byte
 
 	for i := 0; i < len(derBytes); {
@@ -298,7 +298,7 @@ func (tp *tlsProxy) getRecordConfigForClient(clientHello *tls.ClientHelloInfo) (
 	derBytes, negotiatedProtocol, err := tp.mwa.CurrentArchive().FindHostTlsConfig(h)
 
 	if err == nil && derBytes != nil {
-		certBytes := parseDerBytes(derBytes)
+		certBytes := ParseDerBytes(derBytes)
 
 		for i := 0; i < len(certBytes); i++ {
 			certificates = append(certificates, tls.Certificate{
