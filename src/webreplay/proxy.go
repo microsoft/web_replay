@@ -74,7 +74,7 @@ func updateDates(h http.Header, now time.Time) {
 // NewReplayingProxy constructs an HTTP proxy that replays responses from an archive.
 // The proxy is listening for requests on a port that uses the given scheme (e.g., http, https).
 func NewReplayingProxy(ma *MultipleArchive, scheme string, quietMode bool,
-	excludesList string, disableReqDelay bool, siteLog *SiteLog) http.Handler {
+	excludesList string, disableReqDelay bool, siteLog *SiteLog, monitor *Monitor) http.Handler {
 	transport := http.DefaultTransport.(*http.Transport)
 	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	return &replayingProxy{
@@ -85,6 +85,7 @@ func NewReplayingProxy(ma *MultipleArchive, scheme string, quietMode bool,
 		strings.Split(excludesList, " "),
 		disableReqDelay,
 		siteLog,
+		monitor,
 	}
 }
 
@@ -96,9 +97,14 @@ type replayingProxy struct {
 	excludesList    []string
 	disableReqDelay bool
 	siteLog         *SiteLog
+	monitor         *Monitor
 }
 
 func (proxy *replayingProxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	if proxy.monitor != nil {
+		proxy.monitor.Reset()
+	}
+
 	if req.URL.Path == "/web-page-replay-generate-200" {
 		w.WriteHeader(200)
 		return
