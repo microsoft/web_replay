@@ -97,6 +97,7 @@ type ReplayCommand struct {
 	disableFuzzyURLMatching              bool
 	disableReqDelay                      bool
 	theme                                string
+	timeoutMin                           int
 }
 
 type RootCACommand struct {
@@ -348,6 +349,12 @@ func (r *ReplayCommand) Flags() []cli.Flag {
 			Name:        "theme",
 			Usage:       "Archive theme to use (For example: light or dark)",
 			Destination: &r.theme,
+		},
+		&cli.IntFlag{
+			Name:        "timeout_min",
+			Value:       -1,
+			Usage:       "Number of minutes to wait for a request before terminating",
+			Destination: &r.timeoutMin,
 		})
 }
 
@@ -823,12 +830,19 @@ func (r *ReplayCommand) Run(c *cli.Context) error {
 
 	siteLog := webreplay.CreateSiteLog(r.common.outDir)
 
+	var monitor *webreplay.Monitor
+
+	if r.timeoutMin > 0 {
+		monitor = webreplay.NewMonitor(time.Duration(r.timeoutMin) * time.Minute)
+		go monitor.Start()
+	}
+
 	httpHandler := webreplay.NewReplayingProxy(
-		ma, "http", r.quietMode, r.excludesList, r.disableReqDelay, siteLog,
+		ma, "http", r.quietMode, r.excludesList, r.disableReqDelay, siteLog, monitor,
 	)
 
 	httpsHandler := webreplay.NewReplayingProxy(
-		ma, "https", r.quietMode, r.excludesList, r.disableReqDelay, siteLog,
+		ma, "https", r.quietMode, r.excludesList, r.disableReqDelay, siteLog, monitor,
 	)
 
 	tlsconfig, err := webreplay.ReplayTLSConfig(r.common.leaf_certs, r.common.int_cert, ma)

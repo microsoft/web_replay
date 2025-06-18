@@ -6,7 +6,7 @@ recording and replaying web pages. Originally based on [Catapult > Web Page Repl
 
 ### Certificate installation
 
-In order for the web_replay server on **HOST PC** to be trusted by the browser on Device Under Test ( **DUT**), the certificates generated and used by web_replay can be added to the trusted certificate store on the DUT, or using the '--ignore-certificate-errors-spki-list' browser parameter can be used instead. Multiple options are possible to support this:
+In order for the web_replay server on the **HOST PC** to be trusted by the browser on the Device Under Test (**DUT**), the certificates generated and used by web_replay can either be added to the trusted certificate store on the DUT, or use the '--ignore-certificate-errors-spki-list' browser parameter instead:
 
 #### Browser Parameter
 
@@ -20,7 +20,7 @@ two leaf certificates:
 
 #### Certificate Store
 
-Install the certificate chain on a test machine (**DUT**) using `install_certs.ps1`. **Use this with care as installing a root CA compromises your machine**.
+Install the certificate chain on a DUT using `install_certs.ps1`. **Use this with care as installing a root CA compromises your machine**.
 
 The certificates listed in `.\certs` are used by default. These can be modified by replacing the
 chain with a different one.
@@ -28,24 +28,24 @@ chain with a different one.
 
 ### Point browser to web_replay on DUT
 
-Modify the host resolver rules of the browser on **DUT** by using `--host-resolver-rules`:
+Modify the host resolver rules of the browser on a DUT by using `--host-resolver-rules`:
 ```
 --host-resolver-rules="MAP *:80 <host>:<http_port>,MAP *:443 <host>:<https_port>"
 ```
 
 For example:
 ```
---host-resolver-rules="MAP *:80 192.168.31.16:80,MAP *:443 192.168.31.16:8443"
+--host-resolver-rules="MAP *:80 192.168.0.1:8000,MAP *:443 192.168.0.1:8001"
 ```
 
-`set_args.ps1` and `remove_args.ps1` are PowerShell scripts that handle setting and removing browser arguments for the specified browser located on the taskbar of DUT. 
+`set_args.ps1` and `remove_args.ps1` are PowerShell scripts that handle setting and removing browser arguments for the specified browser located on the taskbar of a DUT. 
 `set_args.ps1` modifies the browser shortcut to include the specified arguments, while `remove_args.ps1` restores the shortcut to its original state. Use them in the following way:
 ```
 .\set_args.ps1 web_replay <host> <http_port> <https_port> <browser>
 ```
 For example:
 ```
-.\set_args.ps1 web_replay 192.168.31.16 80 8443 edge
+.\set_args.ps1 web_replay 192.168.0.1 8000 8001 edge
 ```
 
 If you want to restore the browser shortcut to its original state, use:
@@ -67,13 +67,13 @@ edgecanary
 chrome
 ```
 
-Another method for pointing the browser on DUT to web_replay is by configuring proxy settings. This can
+Another method for pointing the browser on a DUT to web_replay is by configuring the proxy settings. This can
 be done within the browser settings itself, using the browser parameter `--proxy-server`, or within
 system settings.
 
 > [!WARNING]
 > It may be necessary to terminate all the browser processes before launching for the command-line parameters to be included.
-> If Edge's [**Startup Boost**](https://support.microsoft.com/en-us/topic/get-help-with-startup-boost-ebef73ed-5c72-462f-8726-512782c5e442) feature is enabled, it may be necessary to disable it to ensure the command-line parameters are included.
+> If Edge's [**Startup Boost**](https://support.microsoft.com/en-us/topic/get-help-with-startup-boost-ebef73ed-5c72-462f-8726-512782c5e442) feature is enabled, terminating all browser processes will be required.
 
 ### Record an archive on HOST PC
 The web_replay server on the HOST PC can be started in two ways: **Standard** and **Proxy**. The **Standard** method is recommended for most cases, while the **Proxy** method is useful when the DUT cannot be configured to point to the HOST PC directly.
@@ -85,10 +85,10 @@ The web_replay server on the HOST PC can be started in two ways: **Standard** an
 ```
 For example:
 ```
-.\bin\web_replay.exe record --host=192.168.31.16 --http_port=8080 --https_port=8443 c:\temp\archive
+.\bin\web_replay.exe record --host=192.168.0.1 --http_port=8000 --https_port=8001 c:\temp\archive
 ```
 > [!WARNING]
-> Please run the command from web_replay folder instead of under **bin** folder. Run web_replay.exe under bin folder directly may cause errors.
+> Run under the root web_replay directory.
 
 > [!NOTE]
 > Once you have finished recording, use `Ctrl+C` to stop the recording process.
@@ -102,13 +102,12 @@ For example:
 `<archive>` is either a single file or a folder. **Using a folder is recommended as it can handle multiple DUTs simultaneously.**
 
 > [!NOTE]
-> On the HOST PC, need to open the port for the web_replay server to listen on. You can specify a different port per above the `--http_port` or `--https_port` options.
-> For example (if default port is 8080 for HTTP and 8443 for HTTPS):
+> The ports specified in `--http_port` and `--https_port` may need to be added to the firewall. One method of adding is the following:
 > ```
-> netsh advfirewall firewall add rule name="web_replay" protocol=TCP dir=in localport=8080,8443 action=allow
+> netsh advfirewall firewall add rule name="web_replay" protocol=TCP dir=in localport=8000,8001 action=allow
 > ```
 
-### Replay an archive
+### Replay an archive on HOST PC
 
 **Standard method:**
 
@@ -117,11 +116,10 @@ For example:
 ```
 For example:
 ```
-.\bin\web_replay.exe replay --host=192.168.31.16 --http_port=8080 --https_port=8443 c:\temp\archive
+.\bin\web_replay.exe replay --host=192.168.0.1 --http_port=8000 --https_port=8001 c:\temp\archive
 ```
-> [!NOTE]
-> Please run the command from web_replay folder instead of under **bin** folder. Run web_replay.exe under bin folder directly may cause errors.
-
+> [!WARNING]
+> Run under the root web_replay directory.
 
 **Proxy method:**
 
@@ -132,11 +130,10 @@ For example:
 `<archive>` is either a single file or a folder. **Using a folder is recommended as it can handle multiple DUTs simultaneously.**
 
 > [!TIP]
-> The optional parameter `--excludes_list` accepts a space-separated list of domains for which web_replay will always fetch data from the live internet. 
+> The optional parameter `--excludes_list` accepts a space-separated list of domains for which web_replay will always fetch data from the live internet.
 
 > [!NOTE]
-> A single HOST PC can handle multiple DUTs simultaneously. When using a folder as an archive if specific issues arise, that DUT may need to record and replay its own dedicated archive.
-> If the archive is a folder containing multiple archive files, you can switch between archives dynamically using the special URL path `/web-page-replay-change-archive?n={n}`.
+> A single HOST PC can handle multiple DUTs simultaneously, although issues may arise when the expected active archive file has changed.
 
 ### Special URL Paths
 
