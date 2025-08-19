@@ -27,6 +27,9 @@ import (
 
 	"github.com/google/brotli/go/cbrotli"
 	"github.com/klauspost/compress/zstd"
+
+	"github.com/tdewolff/minify/v2"
+	"github.com/tdewolff/minify/v2/js"
 )
 
 type readerWithError struct {
@@ -354,25 +357,26 @@ type ResponseTransformer interface {
 }
 
 // NewScriptInjector constructs a transformer that injects the given script
-// after the first <head>, <html>, or <!doctype html> tag. Statements in
-// script must be ';' terminated. The script is lightly minified before
-// injection.
+// after the first <head>, <html>, or <!doctype html> tag. The script is
+// minified before injection.
 func NewScriptInjector(
-	filename string, script []byte, replacements map[string]string) ResponseTransformer {
-	// Remove C-style comments.
-	script = jsMultilineCommentRE.ReplaceAllLiteral(script, []byte(""))
-	script = jsSinglelineCommentRE.ReplaceAllLiteral(script, []byte(""))
+	filename string, script []byte, replacements map[string]string) (ResponseTransformer, error) {
 	for oldstr, newstr := range replacements {
 		script = bytes.Replace(script, []byte(oldstr), []byte(newstr), -1)
 	}
-	// Remove line breaks.
-	script = bytes.Replace(script, []byte("\r\n"), []byte(""), -1)
+	m := minify.New()
+	m.AddFunc("application/javascript", js.Minify)
+	var minifiedJsBuffer bytes.Buffer
+	err := m.Minify("application/javascript", &minifiedJsBuffer, bytes.NewReader(script))
+	if err != nil {
+		return nil, err
+	}
 	// Compute the sha256 hash of the script content.
 	// WPR may need to use the sha256 hash in a CSP header to grant the injected
 	// script execute permission.
-	sha256Bytes := sha256.Sum256(script)
+	sha256Bytes := sha256.Sum256(minifiedJsBuffer.Bytes())
 	sha256String := base64.URLEncoding.EncodeToString(sha256Bytes[:])
-	return &scriptInjector{filename, script, sha256String}
+	return &scriptInjector{filename, minifiedJsBuffer.Bytes(), sha256String}, nil
 }
 
 // NewScriptInjectorFromFile creates a script injector from a script stored in
@@ -384,13 +388,11 @@ func NewScriptInjectorFromFile(
 	if err != nil {
 		return nil, err
 	}
-	return NewScriptInjector(filename, script, replacements), nil
+	return NewScriptInjector(filename, script, replacements)
 }
 
 var (
-	jsMultilineCommentRE  = regexp.MustCompile(`(?is)/\*.*?\*/`)
-	jsSinglelineCommentRE = regexp.MustCompile(`(?i)//.*`)
-	doctypeRE             = regexp.MustCompile(
+	doctypeRE = regexp.MustCompile(
 		`(?is)^.*?(<!--.*-->)?.*?<!doctype html>`)
 	htmlRE = regexp.MustCompile(
 		`(?is)^.*?(<!--.*-->)?.*?<html.*?>`)
@@ -439,9 +441,10 @@ func (si *scriptInjector) Transform(req *http.Request, resp *http.Response) {
 		return
 	}
 
-	transformResponseBody(resp, func(body []byte) []byte {
+	err := transformResponseBody(resp, func(body []byte) []byte {
 		// Don't inject if the script has already been injected.
 		if bytes.Contains(body, si.script) {
+			log.Printf("ScriptInjector(%s): already injected", resp.Request.URL)
 			return body
 		}
 
@@ -494,6 +497,9 @@ func (si *scriptInjector) Transform(req *http.Request, resp *http.Response) {
 		transformCSPHeader(resp.Header, si.sha256)
 		return buffer.Bytes()
 	})
+	if err != nil {
+		log.Printf("Error while injecting script: %v", err)
+	}
 }
 
 // NewRuleBasedTransformer creates a transformer that is controlled by a rules
