@@ -724,7 +724,10 @@ func (a *Archive) Merge(youtubeOnly bool, other *Archive) error {
 		err = other.ForEach(func(req *http.Request, resp *http.Response, dur time.Duration) error {
 			foundReq, _, _, notFoundErr := a.FindRequest(req)
 
-			if notFoundErr == ErrNotFound || req.URL.String() != foundReq.URL.String() {
+			if notFoundErr == ErrNotFound ||
+				req.URL.String() != foundReq.URL.String() ||
+				!reflect.DeepEqual(req.Header, foundReq.Header) {
+
 				if err := a.addArchivedRequest(req, resp, dur, AddModeAppend); err != nil {
 					return err
 				}
