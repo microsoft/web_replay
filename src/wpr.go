@@ -618,7 +618,7 @@ func (r *RecordCommand) Run(c *cli.Context) error {
 	isDir, err := isDir(pathArg)
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error checking archive path: %v", err)
+		fmt.Fprintf(os.Stderr, "Error checking archive path: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -695,7 +695,7 @@ func (r *RecordCommand) Run(c *cli.Context) error {
 	tlsconfig, err := webreplay.RecordTLSConfig(r.common.leaf_certs, r.common.int_cert, mwa)
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error creating TLSConfig: %v", err)
+		fmt.Fprintf(os.Stderr, "Error creating TLSConfig: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -714,7 +714,7 @@ func (r *ReplayCommand) Run(c *cli.Context) error {
 	isDir, err := isDir(pathArg)
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error checking archive path: %v", err)
+		fmt.Fprintf(os.Stderr, "Error checking archive path: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -725,7 +725,8 @@ func (r *ReplayCommand) Run(c *cli.Context) error {
 		entries, err := os.ReadDir(pathArg)
 
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error reading archive path: %v", err)
+			fmt.Fprintf(os.Stderr, "Error reading archive path: %v\n", err)
+			os.Exit(1)
 		}
 
 		for _, e := range entries {
@@ -734,7 +735,8 @@ func (r *ReplayCommand) Run(c *cli.Context) error {
 				themeEntries, err := os.ReadDir(themePath)
 
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error reading archive theme path: %v", err)
+					fmt.Fprintf(os.Stderr, "Error reading archive theme path: %v\n", err)
+					os.Exit(1)
 				}
 
 				for _, te := range themeEntries {
@@ -761,7 +763,7 @@ func (r *ReplayCommand) Run(c *cli.Context) error {
 			t1 := time.Now()
 
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error opening archive file: %v", err)
+				fmt.Fprintf(os.Stderr, "Error opening archive file: %v\n", err)
 				os.Exit(1)
 			}
 
@@ -848,7 +850,7 @@ func (r *ReplayCommand) Run(c *cli.Context) error {
 	tlsconfig, err := webreplay.ReplayTLSConfig(r.common.leaf_certs, r.common.int_cert, ma)
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error creating TLSConfig: %v", err)
+		fmt.Fprintf(os.Stderr, "Error creating TLSConfig: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -860,7 +862,7 @@ func (r *ReplayCommand) Run(c *cli.Context) error {
 func (r *RootCACommand) Install(c *cli.Context) error {
 	if err := r.installer.InstallRoot(
 		r.certConfig.leafCertFiles, r.certConfig.leafKeyFiles); err != nil {
-		fmt.Fprintf(os.Stderr, "Install root failed: %v", err)
+		fmt.Fprintf(os.Stderr, "Install root failed: %v\n", err)
 		os.Exit(1)
 	}
 	return nil

@@ -49,10 +49,6 @@
     function clickEventListener() {
       numClicked++;
 
-      if (numClicked === 1) {
-        disableAmbientMode();
-      }
-
       if (numClicked === totalClicks) {
         video.removeEventListener("play", playEventListener);
         document.removeEventListener("click", clickEventListener);
