@@ -806,6 +806,24 @@ func (r *ReplayCommand) Run(c *cli.Context) error {
 				log.Printf("Loaded replay rules from %s", r.rulesFile)
 			}
 
+			t0 = time.Now()
+			transA, err := archive.Edit(func(req *http.Request, resp *http.Response) (*http.Request, *http.Response, error) {
+				for _, t := range transformers {
+					t.Transform(req, resp)
+				}
+				return req, resp, nil
+			})
+			t1 = time.Now()
+
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error transforming, using original archive %s %dms\n",
+					archiveFileName, t1.Sub(t0).Milliseconds(),
+				)
+			} else {
+				log.Printf("Transformed archive %s %dms", archiveFileName, t1.Sub(t0).Milliseconds())
+				archive.Requests = transA.Requests
+			}
+
 			baseName := strings.TrimSuffix(filepath.Base(archiveFileName), ".json.gz")
 
 			mu.Lock()

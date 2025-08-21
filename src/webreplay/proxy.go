@@ -248,11 +248,6 @@ func (proxy *replayingProxy) ServeHTTP(w http.ResponseWriter, req *http.Request)
 	// Update dates in response header.
 	updateDates(storedResp.Header, time.Now())
 
-	// Transform.
-	for _, t := range proxy.ma.CurrentTransformers() {
-		t.Transform(req, storedResp)
-	}
-
 	if req.URL.Path != storedResp.Request.URL.Path {
 		logf(
 			"serving %v response (NON-EXACT PATH MATCH; resp path = %s)",
