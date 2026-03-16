@@ -141,8 +141,7 @@ func MintServerCert(serverName string, leafCert *x509.Certificate, intCert *x509
 	}
 
 	conn, err := tls.DialWithDialer(dialer, "tcp", fmt.Sprintf("%s:443", serverName), &tls.Config{
-		NextProtos:         []string{"h2", "http/1.1"},
-		InsecureSkipVerify: true,
+		NextProtos: []string{"h2", "http/1.1"},
 	})
 
 	if err != nil {

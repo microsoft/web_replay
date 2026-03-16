@@ -422,7 +422,7 @@ func getIdleTimeout(serverName string) (time.Duration, error) {
 		&net.Dialer{Timeout: 10 * time.Second},
 		"tcp",
 		fmt.Sprintf("%s:443", serverName),
-		&tls.Config{InsecureSkipVerify: true},
+		&tls.Config{},
 	)
 
 	if err != nil {
