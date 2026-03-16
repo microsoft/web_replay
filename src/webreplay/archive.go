@@ -850,6 +850,21 @@ func (mwa *MultipleWritableArchive) CurrentName() string {
 	return mwa.Names[atomic.LoadUint32(&mwa.CurrentIndex)]
 }
 
+// Returns true if the provided archive name is a single, simple component.
+// It rejects path separators and parent-directory segments to avoid path traversal
+func isSafeArchiveName(name string) bool {
+	if name == "" {
+		return false
+	}
+	if strings.Contains(name, "/") || strings.Contains(name, "\\") {
+		return false
+	}
+	if strings.Contains(name, "..") {
+		return false
+	}
+	return true
+}
+
 func (mwa *MultipleWritableArchive) ChangeArchive(nextName string) {
 	mwa.mu.Lock()
 	defer mwa.mu.Unlock()
@@ -874,6 +889,11 @@ func (mwa *MultipleWritableArchive) ChangeArchive(nextName string) {
 	}
 
 	if mwa.IsDir {
+		if !isSafeArchiveName(nextName) {
+			log.Printf("Refusing to change archive: unsafe archive name %q", nextName)
+			return
+		}
+
 		archiveFileName := filepath.Join(
 			mwa.Dir,
 			fmt.Sprintf("%s.json.gz", nextName),
