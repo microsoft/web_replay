@@ -44,14 +44,10 @@
     var numClicked = 0;
     var totalClicks = 3;
     var videoStartTime = 0;
-    var title = "TOS";
+    var title = "Unknown";
 
     function clickEventListener() {
       numClicked++;
-
-      if (numClicked === 1) {
-        disableAmbientMode();
-      }
 
       if (numClicked === totalClicks) {
         video.removeEventListener("play", playEventListener);
@@ -59,7 +55,9 @@
 
         var urlParams = new URLSearchParams(window.location.search);
 
-        if (urlParams.get("v") === "yfj8zYFU-Tc") {
+        if (urlParams.get("v") === "41hv2tW5Lc4") {
+          title = "TOS";
+        } else if (urlParams.get("v") === "yfj8zYFU-Tc") {
           videoStartTime = 30;
           title = "NASA";
         }

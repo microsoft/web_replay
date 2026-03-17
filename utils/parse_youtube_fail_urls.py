@@ -16,7 +16,10 @@ def process_log_line(line):
 
     url_replay = urlparse(match_servehttp.group(1))
 
-    if not ('.googlevideo.com' in url_replay.netloc or '/videoplayback' in url_replay.path):
+    hostname = url_replay.hostname
+    is_googlevideo_host = hostname == 'googlevideo.com' or (hostname and hostname.endswith('.googlevideo.com'))
+
+    if not (is_googlevideo_host or '/videoplayback' in url_replay.path):
         return
 
     query_replay = parse_qs(url_replay.query)

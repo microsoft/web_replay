@@ -619,7 +619,7 @@ const (
 	AddModeSkipExisting      AddMode = 2
 )
 
-func (a *Archive) addArchivedRequest(req *http.Request, resp *http.Response, dur time.Duration, mode AddMode) error {
+func (a *Archive) AddArchivedRequest(req *http.Request, resp *http.Response, dur time.Duration, mode AddMode) error {
 	// Always use the absolute URL in this mapping.
 	assertCompleteURL(req.URL)
 	archivedRequest, err := serializeRequest(req, resp, dur)
@@ -674,7 +674,7 @@ func (a *Archive) Edit(edit func(req *http.Request, resp *http.Response) (*http.
 			return nil
 		}
 		// TODO: allow changing scheme or protocol?
-		return clone.addArchivedRequest(newReq, newResp, dur, AddModeAppend)
+		return clone.AddArchivedRequest(newReq, newResp, dur, AddModeAppend)
 	})
 	if err != nil {
 		return nil, err
@@ -698,7 +698,7 @@ func (a *Archive) Merge(youtubeOnly bool, other *Archive) error {
 			foundReq, _, _, notFoundErr := a.FindRequest(req)
 
 			if notFoundErr == ErrNotFound {
-				if err := a.addArchivedRequest(req, resp, dur, AddModeAppend); err != nil {
+				if err := a.AddArchivedRequest(req, resp, dur, AddModeAppend); err != nil {
 					return err
 				}
 
@@ -708,7 +708,7 @@ func (a *Archive) Merge(youtubeOnly bool, other *Archive) error {
 				bq := foundReq.URL.Query()
 
 				if aq.Get("range") != bq.Get("range") || aq.Get("mime") != bq.Get("mime") {
-					if err := a.addArchivedRequest(req, resp, dur, AddModeAppend); err != nil {
+					if err := a.AddArchivedRequest(req, resp, dur, AddModeAppend); err != nil {
 						return err
 					}
 
@@ -724,8 +724,11 @@ func (a *Archive) Merge(youtubeOnly bool, other *Archive) error {
 		err = other.ForEach(func(req *http.Request, resp *http.Response, dur time.Duration) error {
 			foundReq, _, _, notFoundErr := a.FindRequest(req)
 
-			if notFoundErr == ErrNotFound || req.URL.String() != foundReq.URL.String() {
-				if err := a.addArchivedRequest(req, resp, dur, AddModeAppend); err != nil {
+			if notFoundErr == ErrNotFound ||
+				req.URL.String() != foundReq.URL.String() ||
+				!reflect.DeepEqual(req.Header, foundReq.Header) {
+
+				if err := a.AddArchivedRequest(req, resp, dur, AddModeAppend); err != nil {
 					return err
 				}
 
@@ -757,7 +760,7 @@ func (a *Archive) Trim(trimMatch func(req *http.Request, resp *http.Response) (b
 		if trimReq {
 			numRemovedRequests++
 		} else {
-			clone.addArchivedRequest(req, resp, dur, AddModeAppend)
+			clone.AddArchivedRequest(req, resp, dur, AddModeAppend)
 		}
 		return nil
 	})
@@ -798,7 +801,7 @@ func (a *Archive) Add(method string, urlString string, mode AddMode) error {
 		return fmt.Errorf("Error fetching url: %v", err)
 	}
 
-	if err = a.addArchivedRequest(req, resp, t1.Sub(t0), mode); err != nil {
+	if err = a.AddArchivedRequest(req, resp, t1.Sub(t0), mode); err != nil {
 		return err
 	}
 
@@ -847,6 +850,21 @@ func (mwa *MultipleWritableArchive) CurrentName() string {
 	return mwa.Names[atomic.LoadUint32(&mwa.CurrentIndex)]
 }
 
+// Returns true if the provided archive name is a single, simple component.
+// It rejects path separators and parent-directory segments to avoid path traversal
+func isSafeArchiveName(name string) bool {
+	if name == "" {
+		return false
+	}
+	if strings.Contains(name, "/") || strings.Contains(name, "\\") {
+		return false
+	}
+	if strings.Contains(name, "..") {
+		return false
+	}
+	return true
+}
+
 func (mwa *MultipleWritableArchive) ChangeArchive(nextName string) {
 	mwa.mu.Lock()
 	defer mwa.mu.Unlock()
@@ -871,6 +889,11 @@ func (mwa *MultipleWritableArchive) ChangeArchive(nextName string) {
 	}
 
 	if mwa.IsDir {
+		if !isSafeArchiveName(nextName) {
+			log.Printf("Refusing to change archive: unsafe archive name %q", nextName)
+			return
+		}
+
 		archiveFileName := filepath.Join(
 			mwa.Dir,
 			fmt.Sprintf("%s.json.gz", nextName),
@@ -955,7 +978,7 @@ func (a *WritableArchive) RecordRequest(req *http.Request, resp *http.Response, 
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	return a.addArchivedRequest(req, resp, dur, AddModeAppend)
+	return a.AddArchivedRequest(req, resp, dur, AddModeAppend)
 }
 
 // RecordTlsConfig records the cert used and protocol negotiated for a host.

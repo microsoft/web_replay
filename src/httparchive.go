@@ -25,6 +25,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -33,7 +34,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-const usage = "%s [ls|cat|edit|merge|add|addAll|trim|header|cookiesRemove|idleTimeout|certsUpdate] [options] archive_file [output_file] [url]"
+const usage = "%s [ls|cat|edit|merge|add|addAll|trim|inject|header|cookiesRemove|idleTimeout|certsUpdate] [options] archive_file [output_file] [url]"
 
 type Config struct {
 	method, host, fullPath                                           string
@@ -42,38 +43,43 @@ type Config struct {
 	youtubeOnly                                                      bool
 }
 
-func (cfg *Config) DefaultFlags() []cli.Flag {
+func (cfg *Config) RequestFilterFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{
 			Name:        "command",
 			Value:       "",
-			Usage:       "Only show URLs matching this HTTP method.",
+			Usage:       "Only include URLs matching this HTTP method.",
 			Destination: &cfg.method,
 		},
 		&cli.StringFlag{
 			Name:        "host",
 			Value:       "",
-			Usage:       "Only show URLs matching this host.",
+			Usage:       "Only include URLs matching this host.",
 			Destination: &cfg.host,
 		},
 		&cli.StringFlag{
 			Name:        "full_path",
 			Value:       "",
-			Usage:       "Only show URLs matching this full path.",
+			Usage:       "Only include URLs matching this full path.",
 			Destination: &cfg.fullPath,
 		},
 		&cli.IntFlag{
 			Name:        "status_code",
 			Value:       0,
-			Usage:       "Only show URLs matching this response status code.",
+			Usage:       "Only include URLs matching this response status code.",
 			Destination: &cfg.statusCode,
 		},
+	}
+}
+
+func (cfg *Config) DefaultFlags() []cli.Flag {
+	return append([]cli.Flag{
 		&cli.BoolFlag{
 			Name:        "decode_response_body",
 			Usage:       "Decode/encode response body according to Content-Encoding header.",
 			Destination: &cfg.decodeResponseBody,
 		},
-	}
+	}, cfg.RequestFilterFlags()...)
 }
 
 func (cfg *Config) AddFlags() []cli.Flag {
@@ -352,6 +358,29 @@ func addAll(cfg *Config, archive *webreplay.Archive, outfile string, inputFilePa
 	return writeArchive(archive, outfile)
 }
 
+func inject(cfg *Config, a *webreplay.Archive, outfile string, scriptFile string) error {
+	timeSeedMs := a.DeterministicTimeSeedMs
+	// Replace {{WPR_TIME_SEED_TIMESTAMP}} with the time seed.
+	replacements := map[string]string{"{{WPR_TIME_SEED_TIMESTAMP}}": strconv.FormatInt(timeSeedMs, 10)}
+	si, err := webreplay.NewScriptInjectorFromFile(scriptFile, filepath.Base(scriptFile), replacements)
+	if err != nil {
+		return fmt.Errorf("Error opening script %s: %v", scriptFile, err)
+	}
+
+	err = a.ForEach(func(req *http.Request, resp *http.Response, dur time.Duration) error {
+		if cfg.requestEnabled(req, resp) {
+			si.Transform(req, resp)
+		}
+		a.AddArchivedRequest(req, resp, dur, webreplay.AddModeOverwriteExisting)
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("Error editing archive: %v", err)
+	}
+
+	return writeArchive(a, outfile)
+}
+
 func cookiesRemove(cfg *Config, archive *webreplay.Archive, outfile string) error {
 	newA, err := archive.Edit(func(req *http.Request, resp *http.Response) (*http.Request, *http.Response, error) {
 		req.Header.Del("Cookie")
@@ -393,7 +422,7 @@ func getIdleTimeout(serverName string) (time.Duration, error) {
 		&net.Dialer{Timeout: 10 * time.Second},
 		"tcp",
 		fmt.Sprintf("%s:443", serverName),
-		&tls.Config{InsecureSkipVerify: true},
+		&tls.Config{},
 	)
 
 	if err != nil {
@@ -862,6 +891,16 @@ func main() {
 			Before:    checkArgs("trim", 2),
 			Action: func(c *cli.Context) error {
 				return trim(cfg, loadArchiveOrDie(c, 0), c.Args().Get(1))
+			},
+		},
+		&cli.Command{
+			Name:      "inject",
+			Usage:     "Inject a script into the selected responses of an archive",
+			ArgsUsage: "input_archive output_archive script",
+			Flags:     cfg.RequestFilterFlags(),
+			Before:    checkArgs("inject", 3),
+			Action: func(c *cli.Context) error {
+				return inject(cfg, loadArchiveOrDie(c, 0), c.Args().Get(1), c.Args().Get(2))
 			},
 		},
 		&cli.Command{
