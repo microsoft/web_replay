@@ -1,8 +1,6 @@
 module github.com/microsoft/web_replay
 
-go 1.23.0
-
-toolchain go1.23.7
+go 1.25.0
 
 require (
 	github.com/elazarl/goproxy v0.0.0-20231117061959-7cc037d33fb5
@@ -12,7 +10,7 @@ require (
 	github.com/mailru/easyjson v0.7.7
 	github.com/tdewolff/minify/v2 v2.23.8
 	github.com/urfave/cli/v2 v2.25.7
-	golang.org/x/net v0.38.0
+	golang.org/x/net v0.55.0
 )
 
 require (
@@ -21,5 +19,5 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/tdewolff/parse/v2 v2.8.1 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	golang.org/x/text v0.23.0 // indirect
+	golang.org/x/text v0.37.0 // indirect
 )
