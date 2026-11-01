@@ -6,6 +6,11 @@ param(
     [string]$exe
 )
 
+# Target x64
+$env:GOOS = "windows"
+$env:GOARCH = "amd64"
+$env:CGO_ENABLED = "1"
+
 Set-Item -Path Env:CGO_CFLAGS  -Value "-I$(Get-Location)\include"
 Set-Item -Path Env:CGO_LDFLAGS -Value "-L$(Get-Location)\bin"
 
